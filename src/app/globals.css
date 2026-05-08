@@ -1,0 +1,245 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================================================
+   JanaVaani — Light Theme (Government Accessible)
+   ============================================================================ */
+:root {
+  --background: oklch(0.985 0.002 247);
+  --foreground: oklch(0.15 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 260);
+  --primary: oklch(0.55 0.22 260);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.96 0.01 260);
+  --secondary-foreground: oklch(0.25 0.03 260);
+  --muted: oklch(0.96 0.005 260);
+  --muted-foreground: oklch(0.5 0.02 260);
+  --accent: oklch(0.92 0.03 260);
+  --accent-foreground: oklch(0.25 0.03 260);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.91 0.01 260);
+  --input: oklch(0.91 0.01 260);
+  --ring: oklch(0.55 0.22 260);
+  --chart-1: oklch(0.55 0.22 260);
+  --chart-2: oklch(0.6 0.18 160);
+  --chart-3: oklch(0.65 0.2 45);
+  --chart-4: oklch(0.7 0.15 330);
+  --chart-5: oklch(0.6 0.2 200);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.98 0.005 260);
+  --sidebar-foreground: oklch(0.15 0.02 260);
+  --sidebar-primary: oklch(0.55 0.22 260);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.94 0.02 260);
+  --sidebar-accent-foreground: oklch(0.25 0.03 260);
+  --sidebar-border: oklch(0.91 0.01 260);
+  --sidebar-ring: oklch(0.55 0.22 260);
+}
+
+/* ============================================================================
+   JanaVaani — Dark Theme (Premium Civic Tech)
+   ============================================================================ */
+.dark {
+  --background: oklch(0.13 0.02 260);
+  --foreground: oklch(0.95 0.005 260);
+  --card: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.95 0.005 260);
+  --popover: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.95 0.005 260);
+  --primary: oklch(0.7 0.2 260);
+  --primary-foreground: oklch(0.12 0.02 260);
+  --secondary: oklch(0.22 0.02 260);
+  --secondary-foreground: oklch(0.9 0.005 260);
+  --muted: oklch(0.22 0.015 260);
+  --muted-foreground: oklch(0.65 0.015 260);
+  --accent: oklch(0.25 0.03 260);
+  --accent-foreground: oklch(0.9 0.005 260);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.28 0.02 260);
+  --input: oklch(0.25 0.02 260);
+  --ring: oklch(0.7 0.2 260);
+  --chart-1: oklch(0.7 0.2 260);
+  --chart-2: oklch(0.65 0.18 160);
+  --chart-3: oklch(0.7 0.2 45);
+  --chart-4: oklch(0.75 0.15 330);
+  --chart-5: oklch(0.65 0.2 200);
+  --sidebar: oklch(0.16 0.02 260);
+  --sidebar-foreground: oklch(0.95 0.005 260);
+  --sidebar-primary: oklch(0.7 0.2 260);
+  --sidebar-primary-foreground: oklch(0.12 0.02 260);
+  --sidebar-accent: oklch(0.22 0.02 260);
+  --sidebar-accent-foreground: oklch(0.9 0.005 260);
+  --sidebar-border: oklch(0.28 0.02 260);
+  --sidebar-ring: oklch(0.7 0.2 260);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans scroll-smooth;
+  }
+}
+
+/* ============================================================================
+   Leaflet Overrides — Dark Mode Compatibility
+   ============================================================================ */
+.leaflet-container {
+  background: var(--background) !important;
+  font-family: inherit !important;
+  z-index: 0;
+}
+
+.dark .leaflet-tile-pane {
+  filter: brightness(0.7) contrast(1.1) saturate(0.9);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ============================================================================
+   Custom Animations
+   ============================================================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 20px 6px rgba(99, 102, 241, 0.5); }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+/* Stagger children animations */
+.stagger-children > * {
+  opacity: 0;
+  animation: slide-up 0.5s ease-out forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* Glassmorphism utility */
+.glass {
+  background: oklch(1 0 0 / 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid oklch(1 0 0 / 0.1);
+}
+
+.dark .glass {
+  background: oklch(0 0 0 / 0.3);
+  border: 1px solid oklch(1 0 0 / 0.08);
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 0.3);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 0.5);
+}
+
+/* ============================================================================
+   Bottom Navigation Safe Area (mobile)
+   ============================================================================ */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+}
