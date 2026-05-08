@@ -1,5 +1,5 @@
 import { useAuth } from '../context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { redirect } from 'next/navigation';
 
 export default function ProtectedRoute({ children }) {
   const { user, isAdmin, loading } = useAuth();
@@ -8,8 +8,8 @@ export default function ProtectedRoute({ children }) {
       <div className="spinner"></div>
     </div>
   );
-  if (!user) return <Navigate to="/admin/login" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!user) { redirect('/admin/login'); return null; }
+  if (!isAdmin) { redirect('/'); return null; }
   return children;
 }
 
@@ -23,7 +23,7 @@ export function EngineerRoute({ children }) {
       <div className="spinner"></div>
     </div>
   );
-  if (!user) return <Navigate to="/engineer/login" replace />;
-  if (!isEngineer) return <Navigate to="/" replace />;
+  if (!user) { redirect('/engineer/login'); return null; }
+  if (!isEngineer) { redirect('/'); return null; }
   return children;
 }

@@ -1,4 +1,4 @@
-const CACHE = 'tb-v2';
+const CACHE = 'jv-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -9,7 +9,9 @@ const PRECACHE_ASSETS = [
 // Install: cache shell and static assets
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(PRECACHE_ASSETS))
+    caches.open(CACHE)
+      .then(cache => cache.addAll(PRECACHE_ASSETS))
+      .catch(err => console.warn('SW precache failed:', err))
   );
   self.skipWaiting();
 });
@@ -24,46 +26,62 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for static assets, fallback to index.html for navigation
+// Fetch: safe handler that never rejects with non-Response values
 self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
+  // Skip non-GET requests entirely
   if (request.method !== 'GET') return;
 
-  // Supabase/API requests: network only (don't cache)
-  if (url.pathname.includes('/api/') || url.pathname.includes('/supabase/') || url.pathname.includes('/rest/')) {
-    return;
+  // Skip Supabase / API / external requests — let the browser handle them natively
+  if (
+    url.origin !== self.location.origin ||
+    url.pathname.includes('/api/') ||
+    url.pathname.includes('/rest/') ||
+    url.pathname.includes('/auth/') ||
+    url.hostname.includes('supabase')
+  ) {
+    return; // Don't call respondWith — browser handles it
   }
 
-  // Static assets (JS, CSS, images, fonts): cache-first with background update
+  // Static assets: cache-first with background update
   if (/\.(js|css|png|jpg|jpeg|svg|gif|woff2?|webp)$/.test(url.pathname)) {
     e.respondWith(
       caches.match(request).then(cached => {
-        const fetchPromise = fetch(request).then(networkRes => {
-          if (networkRes.ok) {
-            const clone = networkRes.clone();
-            caches.open(CACHE).then(c => c.put(request, clone));
-          }
-          return networkRes;
-        }).catch(() => cached);
+        const fetchPromise = fetch(request)
+          .then(networkRes => {
+            if (networkRes && networkRes.ok) {
+              const clone = networkRes.clone();
+              caches.open(CACHE).then(c => c.put(request, clone));
+            }
+            return networkRes;
+          })
+          .catch(() => cached || new Response('', { status: 408 }));
         return cached || fetchPromise;
       })
     );
     return;
   }
 
-  // Navigation requests (HTML pages): network-first, fallback to cached index.html
+  // Navigation requests: network-first, fallback to cached index.html
   if (request.mode === 'navigate' || request.destination === 'document') {
     e.respondWith(
-      fetch(request).catch(() => caches.match('/') || caches.match('/index.html'))
+      fetch(request)
+        .then(res => res)
+        .catch(() =>
+          caches.match('/index.html')
+            .then(cached => cached || new Response('Offline', { status: 503 }))
+        )
     );
     return;
   }
 
-  // Everything else: network-first
+  // Everything else: network-first with cache fallback
   e.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request).catch(() =>
+      caches.match(request)
+        .then(cached => cached || new Response('', { status: 408 }))
+    )
   );
 });

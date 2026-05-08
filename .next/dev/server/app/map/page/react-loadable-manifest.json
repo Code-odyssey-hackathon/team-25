@@ -1,0 +1,10 @@
+{
+  "[project]/src/views/Home.jsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/src/views/Home.jsx [app-client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/node_modules_0_mrdwu._.js",
+      "static/chunks/src_0zvdsar._.js",
+      "static/chunks/src_views_Home_jsx_0~ofy68._.js"
+    ]
+  }
+}

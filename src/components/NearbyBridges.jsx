@@ -3,7 +3,7 @@
  * 
  * Shows bridges near the user's current GPS location.
  */
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useNearbyBridges } from '../hooks/useNearbyBridges';
 import { useToast } from '../context/ToastContext';
 
@@ -22,7 +22,7 @@ const statusBg = {
 };
 
 export default function NearbyBridges({ bridges }) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { showToast } = useToast();
   const {
     userLocation,
@@ -119,7 +119,6 @@ export default function NearbyBridges({ bridges }) {
         {nearbyBridges.slice(0, 5).map(b => (
           <div
             key={b.id}
-            onClick={() => navigate(`/bridge/${b.id}`)}
             style={{
               padding: '0.75rem',
               borderRadius: '8px',

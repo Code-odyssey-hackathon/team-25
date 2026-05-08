@@ -2,7 +2,7 @@
  * JanaVaani — Weather API Service
  * Proxies OpenWeatherMap for monsoon risk data.
  */
-const API_KEY = import.meta.env.VITE_OPENWEATHER_KEY;
+const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
 export async function getRainfall(lat, lng) {

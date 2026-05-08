@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 
 export default function NavProfileLink() {
@@ -8,7 +8,7 @@ export default function NavProfileLink() {
 
   if (!isLoggedIn) {
     return (
-      <Link to="/citizen/login" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <Link href="/citizen/login" className="nav-item" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         👤 Login
       </Link>
     );
@@ -21,7 +21,7 @@ export default function NavProfileLink() {
     : 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
 
   return (
-    <Link to={profileUrl} className="nav-item" style={{
+    <Link href={profileUrl} className="nav-item" style={{
       display: 'flex', alignItems: 'center', gap: '0.5rem',
       padding: '0.35rem 0.75rem', borderRadius: 20,
       background: 'rgba(255,255,255,0.06)',
