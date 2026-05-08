@@ -1,46 +1,44 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+node_modules/
 
-# testing
-/coverage
+# Build output
 
-# next.js
-/.next/
-/out/
+dist/
 
-# production
-/build
+# Environment variables (contain secrets)
 
-# misc
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Supabase local config
+
+supabase/.temp/
+
+# Editor
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+
 .DS_Store
-*.pem
+Thumbs.db
 
-# debug
+# Logs
+
+*.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Dataset (VERY IMPORTANT — prevents large uploads)
 
-# vercel
-.vercel
+data/
+dataset/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Vercel
 
-# agents
-.agents/
-.gemini/
-.geminiignore
+.vercel/
