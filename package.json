@@ -9,10 +9,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@huggingface/inference": "^2.8.0",
     "@supabase/supabase-js": "^2.105.0",
     "axios": "^1.15.2",
+    "dotenv": "^17.4.2",
     "exifreader": "^4.38.1",
     "leaflet": "^1.9.4",
     "next": "^16.2.6",

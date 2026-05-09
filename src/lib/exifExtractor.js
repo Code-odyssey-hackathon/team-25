@@ -3,7 +3,7 @@
  */
 import ExifReader from 'exifreader';
 
-const MAX_PHOTO_AGE_DAYS = 7;
+const MAX_PHOTO_AGE_DAYS = 1; // Only accept photos taken within the last 24 hours
 
 export async function extractExifData(file) {
   try {
@@ -110,7 +110,7 @@ export function checkImageFreshness(exifData, reportedLat = null, reportedLng = 
   if (ageDays > MAX_PHOTO_AGE_DAYS) {
     result.message = `Photo is ${Math.round(ageDays)} days old (max ${MAX_PHOTO_AGE_DAYS} days allowed)`;
     result.warnings.push('Photo exceeds freshness threshold');
-    result.isFresh = true;
+    result.isFresh = false;  // FIX E-1: Actually reject stale photos
     return result;
   }
 

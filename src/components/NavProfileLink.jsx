@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 
 export default function NavProfileLink() {
-  const { user, loading, isAdmin, isLoggedIn } = useAuth();
+  const { user, loading, isAdmin, isEngineer, isLoggedIn } = useAuth();
 
   if (loading) return null;
 
@@ -15,10 +15,13 @@ export default function NavProfileLink() {
   }
 
   const initial = user?.email?.charAt(0).toUpperCase() || '?';
-  const profileUrl = isAdmin ? '/admin/profile' : '/citizen/profile';
+  const profileUrl = isAdmin ? '/admin/profile' : isEngineer ? '/engineer/dashboard' : '/citizen/profile';
+  const label = isAdmin ? 'Admin' : isEngineer ? 'Engineer' : 'Profile';
   const gradientBg = isAdmin
     ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-    : 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
+    : isEngineer
+      ? 'linear-gradient(135deg, #0891b2, #06b6d4)'
+      : 'linear-gradient(135deg, #3b82f6, #8b5cf6)';
 
   return (
     <Link href={profileUrl} className="nav-item" style={{
@@ -38,8 +41,9 @@ export default function NavProfileLink() {
         {initial}
       </div>
       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>
-        {isAdmin ? 'Admin' : 'Profile'}
+        {label}
       </span>
     </Link>
   );
 }
+

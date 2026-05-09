@@ -5,12 +5,23 @@ import { useAuth } from '../../context/AuthContext';
 import { signOut } from '../../lib/auth';
 import { getTasksForEngineer, updateTaskStatus } from '../../lib/tasks';
 import { useToast } from '../../context/ToastContext';
+import { FLAGS } from '../../lib/features';
+import TaskEvidenceUpload from '../../components/TaskEvidenceUpload';
 
 // TaskCard sub-component
 function TaskCard({ task, onStatusChange }) {
   const [status, setStatus] = useState(task.status);
   const [notes, setNotes] = useState(task.completion_notes || '');
   const [saving, setSaving] = useState(false);
+  // K-GRM Action Log state
+  const [actionLogs, setActionLogs] = useState([]);
+  const [showActions, setShowActions] = useState(false);
+  const [loggingAction, setLoggingAction] = useState(false);
+  // Evidence photo state
+  const [showEvidence, setShowEvidence] = useState(false);
+  const [hasEvidence, setHasEvidence] = useState(false);
+  const evidenceRequired = FLAGS.ENABLE_TASK_EVIDENCE_PHOTOS && (task.evidence_required !== false);
+  const evidenceBlocking = evidenceRequired && !hasEvidence && (status !== task.status);
 
   const priorityColors = {
     LOW: '#94a3b8',
@@ -26,6 +37,17 @@ function TaskCard({ task, onStatusChange }) {
     CLOSED: '#64748b',
   };
 
+  const ACTION_TYPES = [
+    { key: 'FIELD_VISIT_INITIATED', label: '🚶 Field Visit', color: '#3b82f6' },
+    { key: 'ASSESSMENT_COMPLETE', label: '📋 Assessment Done', color: '#8b5cf6' },
+    { key: 'MATERIAL_REQUESTED', label: '📦 Material Requested', color: '#f59e0b' },
+    { key: 'MATERIAL_RECEIVED', label: '📦 Material Received', color: '#10b981' },
+    { key: 'WORK_STARTED', label: '🔨 Work Started', color: '#f97316' },
+    { key: 'WORK_IN_PROGRESS', label: '⚙️ Work In Progress', color: '#f97316' },
+    { key: 'WORK_COMPLETE', label: '✅ Work Complete', color: '#22c55e' },
+    { key: 'CITIZEN_NOTIFIED', label: '📱 Citizen Notified', color: '#60a5fa' },
+  ];
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -38,7 +60,42 @@ function TaskCard({ task, onStatusChange }) {
     }
   }
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && status !== 'COMPLETED';
+  // K-GRM: Fetch action logs
+  async function fetchActionLogs() {
+    try {
+      const res = await fetch(`/api/engineer-actions?task_id=${task.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setActionLogs(data.logs || []);
+      }
+    } catch (e) { console.error('Failed to fetch action logs:', e); }
+  }
+
+  // K-GRM: Log an action
+  async function logAction(actionType, remark = '') {
+    setLoggingAction(true);
+    try {
+      const res = await fetch('/api/engineer-actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: task.id,
+          engineer_id: task.assigned_to,
+          action_type: actionType,
+          remark: remark || `${actionType.replace(/_/g, ' ')} logged`,
+        }),
+      });
+      if (res.ok) {
+        await fetchActionLogs();
+        onStatusChange?.();
+      }
+    } catch (e) { console.error('Failed to log action:', e); }
+    finally { setLoggingAction(false); }
+  }
+
+  useEffect(() => {
+    if (showActions && FLAGS.ENABLE_KGRM_ACTION_LOGS) fetchActionLogs();
+  }, [showActions]);
 
   return (
     <div className="report-card" style={{ marginBottom: '1rem', textAlign: 'left' }}>
@@ -92,32 +149,72 @@ function TaskCard({ task, onStatusChange }) {
       )}
 
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <select
-          className="form-input"
-          style={{ width: '160px', marginTop: 0 }}
-          value={status}
-          onChange={e => setStatus(e.target.value)}
-        >
+        <select className="form-input" style={{ width: '160px', marginTop: 0 }} value={status} onChange={e => setStatus(e.target.value)}>
           <option value="OPEN">OPEN</option>
           <option value="IN_PROGRESS">IN_PROGRESS</option>
           <option value="COMPLETED">COMPLETED</option>
           <option value="CLOSED">CLOSED</option>
         </select>
-        <input
-          className="form-input"
-          style={{ flex: 1, minWidth: 200, marginTop: 0 }}
-          placeholder="Completion notes..."
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-        />
-        <button
-          className="btn-primary"
-          onClick={handleSave}
-          disabled={saving || (status === task.status && notes === (task.completion_notes || ''))}
-        >
-          {saving ? '...' : 'Update'}
+        <input className="form-input" style={{ flex: 1, minWidth: 200, marginTop: 0 }} placeholder="Completion notes..." value={notes} onChange={e => setNotes(e.target.value)} />
+        <button className="btn-primary" onClick={handleSave} disabled={saving || evidenceBlocking || (status === task.status && notes === (task.completion_notes || ''))}>
+          {saving ? '...' : evidenceBlocking ? '📷 Evidence Required' : 'Update'}
         </button>
+        {FLAGS.ENABLE_TASK_EVIDENCE_PHOTOS && (
+          <button className="btn-secondary" onClick={() => setShowEvidence(!showEvidence)} style={{ background: 'rgba(59,130,246,0.1)', color: '#93c5fd', fontSize: '0.85rem' }}>
+            📷 {showEvidence ? 'Hide' : 'Add'} Evidence
+          </button>
+        )}
+        {FLAGS.ENABLE_KGRM_ACTION_LOGS && (
+          <button className="btn-secondary" onClick={() => setShowActions(!showActions)} style={{ background: 'rgba(139,92,246,0.1)', color: '#c4b5fd', fontSize: '0.85rem' }}>
+            📋 {showActions ? 'Hide' : 'Log'} Actions
+          </button>
+        )}
       </div>
+
+      {/* Task Evidence Photos Panel */}
+      {showEvidence && FLAGS.ENABLE_TASK_EVIDENCE_PHOTOS && (
+        <TaskEvidenceUpload
+          taskId={task.id}
+          engineerId={task.assigned_to}
+          required={task.evidence_required !== false}
+          onEvidenceStateChange={setHasEvidence}
+          onUploadComplete={() => onStatusChange?.()}
+        />
+      )}
+
+      {/* K-GRM: Action Log Panel */}
+      {showActions && FLAGS.ENABLE_KGRM_ACTION_LOGS && (
+        <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8 }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem', color: '#c4b5fd' }}>📋 K-GRM Action Log</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            {ACTION_TYPES.map(a => (
+              <button
+                key={a.key}
+                className="btn-secondary"
+                style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', background: a.color + '15', color: a.color, border: `1px solid ${a.color}30` }}
+                disabled={loggingAction}
+                onClick={() => logAction(a.key)}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+          {/* Action Timeline */}
+          {actionLogs.length > 0 && (
+            <div style={{ borderLeft: '2px solid rgba(139,92,246,0.3)', paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {actionLogs.map(log => (
+                <div key={log.id} style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                  <span style={{ color: '#c4b5fd', fontWeight: 600 }}>{new Date(log.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  {' — '}
+                  <span style={{ color: '#e2e8f0' }}>{log.action_type.replace(/_/g, ' ')}</span>
+                  {log.remark && <span> · {log.remark}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {actionLogs.length === 0 && <p className="text-gray" style={{ fontSize: '0.8rem', margin: 0 }}>No actions logged yet.</p>}
+        </div>
+      )}
     </div>
   );
 }

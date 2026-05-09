@@ -17,7 +17,7 @@ export async function POST(request) {
     // Mock response extraction
     return NextResponse.json({
       success: true,
-      damage_type: "SPALLING",
+      issue_type: "STRUCTURAL_DAMAGE",
       severity: "SERIOUS",
       confidence: 0.92,
       exif_gps: {

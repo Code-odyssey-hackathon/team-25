@@ -167,40 +167,59 @@ export async function submitReport(reportData, photo, exifData = null) {
   // 3. Generate anonymous reporter hash from timestamp
   const reporterHash = `anon_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
-  // 4. Insert report with all hashes and embeddings
-  const { data, error } = await supabase
+  // 4. Insert report — resilient against missing K-GRM columns
+  // Core fields are always present; K-GRM fields are attempted but optional
+  const corePayload = {
+    location_name: reportData.location_name,
+    address: reportData.address || null,
+    city: reportData.city,
+    state: reportData.state,
+    pincode: reportData.pincode || null,
+    reporter_hash: reporterHash,
+    citizen_id: reportData.citizen_id || null,
+    photo_url: photoUrl,
+    photo_path: photoPath,
+    issue_type: reportData.issue_type,
+    severity: reportData.severity,
+    description: reportData.description || null,
+    lat: reportData.lat || null,
+    lng: reportData.lng || null,
+    ai_confidence: reportData.ai_confidence || null,
+    status: 'PENDING',
+    is_public: true,
+    md5_hash: md5Hash || null,
+  };
+
+  // K-GRM extended fields (may not exist in DB yet)
+  const kgrmPayload = {
+    ...(reportData.priority ? { priority: reportData.priority } : {}),
+    ...(reportData.complaint_id ? { complaint_id: reportData.complaint_id } : {}),
+    ...(reportData.district_code ? { district_code: reportData.district_code } : {}),
+    ...(reportData.sla_deadline ? { sla_deadline: reportData.sla_deadline } : {}),
+    ...(reportData.score_multiplier ? { score_multiplier: reportData.score_multiplier } : {}),
+    ...(phash ? { perceptual_hash: phash.toString() } : {}),
+    ...(dhash ? { difference_hash: dhash.toString() } : {}),
+  };
+
+  // Attempt full insert (core + K-GRM)
+  let { data, error } = await supabase
     .from('reports')
-    .insert({
-      location_name: reportData.location_name,
-      address: reportData.address || null,
-      city: reportData.city,
-      state: reportData.state,
-      pincode: reportData.pincode || null,
-      reporter_hash: reporterHash,
-      citizen_id: reportData.citizen_id || null,
-      photo_url: photoUrl,
-      photo_path: photoPath,
-      md5_hash: md5Hash,
-      phash: phash != null ? phash.toString() : null,
-      dhash: dhash != null ? dhash.toString() : null,
-      embedding: embedding,
-      issue_type: reportData.issue_type,
-      severity: reportData.severity,
-      description: reportData.description || null,
-      lat: reportData.lat || null,
-      lng: reportData.lng || null,
-      ai_confidence: reportData.ai_confidence || null,
-      // EXIF metadata
-      photo_taken_at: exifData?.dateTaken || null,
-      photo_lat: exifData?.lat || null,
-      photo_lng: exifData?.lng || null,
-      photo_device_info: exifData?.deviceInfo || null,
-      exif_verified: !!exifData?.dateTaken,
-      status: 'PENDING',
-      is_public: true,
-    })
+    .insert({ ...corePayload, ...kgrmPayload })
     .select()
     .single();
+
+  // If PostgREST rejects due to missing columns, retry with core-only
+  if (error && (error.message?.includes('schema cache') || error.message?.includes('does not exist') || error.code === '42703')) {
+    console.warn('⚠️ K-GRM columns not in schema, retrying with core-only insert:', error.message);
+    const retryResult = await supabase
+      .from('reports')
+      .insert(corePayload)
+      .select()
+      .single();
+
+    data = retryResult.data;
+    error = retryResult.error;
+  }
 
   if (error) throw error;
 

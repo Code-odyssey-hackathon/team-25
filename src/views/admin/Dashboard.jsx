@@ -10,6 +10,10 @@ import { exportToCSV, exportToPDF, getReportStats } from '../../lib/exportReport
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../lib/auth';
 import { FLAGS } from '../../lib/features'
+// K-GRM imports
+import { ESCALATION_LEVELS, getEscalationStatus, escalateReport } from '../../lib/escalation'
+import { PRIORITY_LEVELS } from '../../lib/priorityMap'
+import { KARNATAKA_DISTRICTS } from '../../lib/karnatakaDistricts'
 
 function AddEngineerForm({ onSuccess, onCancel }) {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
@@ -64,7 +68,7 @@ function AddEngineerForm({ onSuccess, onCancel }) {
 
 // Bridges functionality removed as requested
 
-function ReportRow({ report, onUpdate, authority }) {
+function ReportRow({ report, onUpdate, authority, canAssignToEngineer }) {
   const [status, setStatus] = useState(report.status)
   const [notes, setNotes] = useState(report.response_notes || '')
   const [saving, setSaving] = useState(false)
@@ -133,14 +137,16 @@ function ReportRow({ report, onUpdate, authority }) {
           </select>
           <input className="form-input" style={{ flex: 1, minWidth: 200, marginTop: 0 }} placeholder="Action notes..." value={notes} onChange={e => setNotes(e.target.value)} />
           <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? '...' : 'Update'}</button>
-          <button className="btn-secondary" onClick={() => setAssignOpen(!assignOpen)} style={{ background: 'rgba(34,197,94,0.1)', color: '#86efac' }}>
-            🔧 Assign to Engineer
-          </button>
+          {canAssignToEngineer && (
+            <button className="btn-secondary" onClick={() => setAssignOpen(!assignOpen)} style={{ background: 'rgba(34,197,94,0.1)', color: '#86efac' }}>
+              🔧 Assign to Engineer
+            </button>
+          )}
           {updated && <span className="text-green" style={{ fontWeight: 'bold' }}>✅ Updated</span>}
         </div>
 
         {/* Assignment Panel */}
-        {assignOpen && (
+        {assignOpen && canAssignToEngineer && (
           <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8 }}>
             <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem', color: '#86efac' }}>
               🔧 Assign to Engineer
@@ -222,12 +228,23 @@ function ReportRow({ report, onUpdate, authority }) {
 }
 
 export default function AdminDashboard() {
-  const { authority, loading: authLoading, isAdmin } = useAuth()
+  const { authority, loading: authLoading, isAdmin, isEngineer } = useAuth()
   const router = useRouter()
   const { showToast } = useToast()
   const [pendingReports, setPendingReports] = useState([])
   const [reportsLoading, setReportsLoading] = useState(true)
   const [addEngineerOpen, setAddEngineerOpen] = useState(false)
+
+  // Check if user is a personal role (individual user) - not multiple users
+  const isPersonalRole = authority && (
+    authority.role === 'MUNICIPAL_ENGINEER' || 
+    authority.role === 'WARD_OFFICER' || 
+    authority.role === 'STATE_AUTHORITY' ||
+    authority.role === 'SUPER_ADMIN'
+  );
+  
+  // Allow assignment for all personal roles except multiple users and engineers
+  const canAssignToEngineer = isPersonalRole && !isEngineer;
 
   // Export handlers
   const handleExportCSV = () => {
@@ -242,10 +259,10 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
+    if (!authLoading && !isAdmin && !isPersonalRole) {
       router.push('/admin/login')
     }
-  }, [authLoading, isAdmin, router])
+  }, [authLoading, isAdmin, isPersonalRole, router])
 
   useEffect(() => {
     if (isAdmin) {
@@ -294,14 +311,21 @@ export default function AdminDashboard() {
   if (authLoading || reportsLoading) {
     return <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}><div className="loading-spinner"></div></div>
   }
-  if (!isAdmin) return null
+  if (!isAdmin && !isPersonalRole) return null
 
   return (
     <div className="page-container">
       <div className="flex-between" style={{ marginBottom: '2rem', borderBottom: '1px solid var(--color-glass-border)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>📋 Infrastructure Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <span className="text-gray">{String(authority?.name || 'Admin')} · {String(authority?.role || '')}</span>
+          <span className="text-gray" style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
+            <span style={{ fontWeight: 'bold', color: '#fff' }}>{String(authority?.name || 'Admin')}</span>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+              {authority?.jurisdiction?.level === 'MINISTER_OF_WELFARE' ? 'Minister of Welfare' : 
+               authority?.jurisdiction?.level === 'DISTRICT_COLLECTOR' ? 'District Collector' : 
+               'Municipal Officer'}
+            </span>
+          </span>
           {FLAGS.ENABLE_MASTER_TICKETS && (
             <button className="btn-primary" onClick={() => router.push('/admin/master-tickets')} style={{ background: 'rgba(139,92,246,0.2)', color: '#c4b5fd' }}>🧠 Master Tickets</button>
           )}
@@ -318,7 +342,7 @@ export default function AdminDashboard() {
           <div className="stat-title text-red">Critical Reports</div>
         </div>
         <div className="card-orange">
-          <div className="stat-number text-orange">{pendingReports.filter(r => r.severity === 'WARNING').length}</div>
+          <div className="stat-number text-orange">{pendingReports.filter(r => r.severity === 'SERIOUS' || r.severity === 'WARNING').length}</div>
           <div className="stat-title text-orange">Warning Reports</div>
         </div>
         <div className="card-dark">
@@ -327,18 +351,132 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {addEngineerOpen ? (
-        <AddEngineerForm onSuccess={() => setAddEngineerOpen(false)} onCancel={() => setAddEngineerOpen(false)} />
-      ) : (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '2rem' }}>
-          <button className="btn-secondary" onClick={() => setAddEngineerOpen(true)}>👷 Add New Engineer</button>
+      {/* K-GRM: Escalation Summary Bar */}
+      {FLAGS.ENABLE_KGRM_ESCALATION && (
+        <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '2rem', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.03)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#f87171' }}>⏱️ K-GRM Escalation Monitor</h3>
+              <p className="text-gray" style={{ margin: '0.25rem 0 0', fontSize: '0.85rem' }}>
+                {pendingReports.filter(r => r.escalation_level === 'DC').length} at DC level · 
+                {pendingReports.filter(r => r.escalation_level === 'MINISTRY').length} at Ministry level · 
+                {pendingReports.filter(r => !r.escalation_level && r.created_at && (Date.now() - new Date(r.created_at).getTime()) > 3 * 3600000).length} approaching SLA breach
+              </p>
+            </div>
+            <button 
+              className="btn-primary" 
+              style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: '0.85rem' }}
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/escalation-check', { method: 'POST' });
+                  const data = await res.json();
+                  showToast(`Escalation check: ${data.summary?.dc_count || 0} → DC, ${data.summary?.ministry_count || 0} → Ministry`, data.summary?.dc_count > 0 || data.summary?.ministry_count > 0 ? 'warning' : 'success');
+                  // Refresh reports
+                  const { data: refreshed } = await supabase.from('reports').select('*').in('status', ['PENDING', 'UNDER_REVIEW', 'IGNORED']).order('created_at', { ascending: false });
+                  if (refreshed) setPendingReports(refreshed);
+                } catch (e) { showToast('Escalation check failed', 'error'); }
+              }}
+            >
+              🔄 Run Escalation Check
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Hierarchical RBAC Views */}
+      {authority?.jurisdiction?.level === 'MINISTER_OF_WELFARE' && (
+        <div className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'left', border: '1px solid #c084fc', background: 'rgba(192, 132, 252, 0.05)' }}>
+          <h2 style={{ color: '#c084fc', marginTop: 0 }}>🏛️ State Welfare Ministry — Dr. H. C. Mahadevappa</h2>
+          <p className="text-gray" style={{ marginBottom: '1.5rem' }}>K-GRM District Performance Overview · All 31 Karnataka Districts</p>
+          <div className="grid-3">
+            <div className="card-dark" style={{ border: '1px solid rgba(192,132,252,0.3)' }}>
+              <div className="stat-number">{pendingReports.length + pendingReports.filter(r => r.status === 'ACTION_TAKEN').length}</div>
+              <div className="stat-title">Statewide Active Issues</div>
+            </div>
+            <div className="card-dark" style={{ border: '1px solid rgba(192,132,252,0.3)' }}>
+              <div className="stat-number">{pendingReports.filter(r => r.escalation_level === 'MINISTRY').length}</div>
+              <div className="stat-title">Ministry Escalations</div>
+            </div>
+            <div className="card-dark" style={{ border: '1px solid rgba(192,132,252,0.3)' }}>
+              <div className="stat-number">{new Set(pendingReports.map(r => r.district_code || r.city).filter(Boolean)).size}</div>
+              <div className="stat-title">Districts Reporting</div>
+            </div>
+          </div>
+          {/* District-wise quick table */}
+          <div style={{ marginTop: '1.5rem', maxHeight: 200, overflow: 'auto' }}>
+            <table style={{ width: '100%', fontSize: '0.85rem', borderCollapse: 'collapse' }}>
+              <thead><tr style={{ borderBottom: '1px solid rgba(192,132,252,0.2)' }}>
+                <th style={{ textAlign: 'left', padding: '0.5rem', color: '#c084fc' }}>District</th>
+                <th style={{ textAlign: 'center', padding: '0.5rem', color: '#c084fc' }}>Total</th>
+                <th style={{ textAlign: 'center', padding: '0.5rem', color: '#c084fc' }}>Pending</th>
+                <th style={{ textAlign: 'center', padding: '0.5rem', color: '#c084fc' }}>Escalated</th>
+              </tr></thead>
+              <tbody>
+                {[...new Set(pendingReports.map(r => r.city).filter(Boolean))].map(city => {
+                  const cityReports = pendingReports.filter(r => r.city === city);
+                  return (
+                    <tr key={city} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{city}</td>
+                      <td style={{ textAlign: 'center', padding: '0.4rem' }}>{cityReports.length}</td>
+                      <td style={{ textAlign: 'center', padding: '0.4rem', color: '#f59e0b' }}>{cityReports.filter(r => r.status === 'PENDING').length}</td>
+                      <td style={{ textAlign: 'center', padding: '0.4rem', color: '#ef4444' }}>{cityReports.filter(r => r.escalation_level).length}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {authority?.jurisdiction?.level === 'DISTRICT_COLLECTOR' && (
+        <div className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'left', border: '1px solid #3b82f6', background: 'rgba(59, 130, 246, 0.05)' }}>
+          <h2 style={{ color: '#60a5fa', marginTop: 0 }}>🏢 DC Review Panel — Escalated Complaints</h2>
+          <p className="text-gray" style={{ marginBottom: '1.5rem' }}>Complaints auto-escalated after 4-hour municipal SLA breach. Review engineer logs and take action.</p>
+          <div className="grid-3">
+            <div className="card-dark" style={{ border: '1px solid rgba(59,130,246,0.3)' }}>
+              <div className="stat-number">{pendingReports.filter(r => r.escalation_level === 'DC' || r.escalation_level === 'MINISTRY').length}</div>
+              <div className="stat-title">Escalated to DC</div>
+            </div>
+            <div className="card-dark" style={{ border: '1px solid rgba(59,130,246,0.3)' }}>
+              <div className="stat-number">{pendingReports.filter(r => {
+                if (!r.created_at) return false;
+                const hrs = (Date.now() - new Date(r.created_at).getTime()) / 3600000;
+                return hrs > 3 && hrs < 4 && !r.escalation_level;
+              }).length}</div>
+              <div className="stat-title">Approaching 4hr SLA</div>
+            </div>
+            <div className="card-dark" style={{ border: '1px solid rgba(59,130,246,0.3)' }}>
+              <div className="stat-number">
+                {pendingReports.length > 0 ? Math.round(pendingReports.reduce((sum, r) => {
+                  return sum + (Date.now() - new Date(r.created_at).getTime()) / 3600000;
+                }, 0) / pendingReports.length) : 0} hrs
+              </div>
+              <div className="stat-title">Avg Response Time</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(authority?.jurisdiction?.level === 'MUNICIPAL' || !authority?.jurisdiction?.level) && (
+        <div className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'left', border: '1px solid #10b981', background: 'rgba(16, 185, 129, 0.05)' }}>
+          <h2 style={{ color: '#34d399', marginTop: 0 }}>🏙️ Municipal Operations Dashboard</h2>
+          <p className="text-gray" style={{ marginBottom: '1.5rem' }}>Localized management, field task assignment, and rapid issue resolution.</p>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button className="btn-secondary" onClick={() => setAddEngineerOpen(true)}>👷 Add New Field Engineer</button>
+            <button className="btn-secondary">📅 View Inspection Roster</button>
+          </div>
+        </div>
+      )}
+
+      {addEngineerOpen && (
+        <AddEngineerForm onSuccess={() => setAddEngineerOpen(false)} onCancel={() => setAddEngineerOpen(false)} />
       )}
 
       <div style={{ marginBottom: '3rem', textAlign: 'left' }}>
         <div className="section-title">Reports Requiring Action</div>
         {pendingReports.length > 0 ? pendingReports.map(r => (
-          <ReportRow key={r.id} report={r} onUpdate={updateReport} authority={authority} />
+          <ReportRow key={r.id} report={r} onUpdate={updateReport} authority={authority} canAssignToEngineer={canAssignToEngineer} />
         )) : <p className="text-gray">No reports require action at this time.</p>}
       </div>
 

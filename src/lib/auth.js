@@ -20,13 +20,15 @@ export async function signIn(email, password) {
   if (error) throw error;
 
   // Fetch the authority profile linked to this auth user
-  const { data: authority, error: profileError } = await supabase
+  const { data: authData, error: profileError } = await supabase
     .from('authorities')
     .select('*')
     .eq('auth_user_id', data.user.id)
-    .single();
+    .limit(1);
 
-  if (profileError) {
+  const authority = authData?.[0];
+
+  if (profileError || !authority) {
     // User exists in auth but not in authorities table — not an admin
     await supabase.auth.signOut();
     throw new Error('This account does not have admin privileges.');
@@ -74,14 +76,14 @@ export async function getCurrentAuthority(providedUser = null) {
   const user = providedUser || (await supabase.auth.getUser()).data.user;
   if (!user) return null;
 
-  const { data: authority, error } = await supabase
+  const { data, error } = await supabase
     .from('authorities')
     .select('*')
     .eq('auth_user_id', user.id)
-    .maybeSingle();
+    .limit(1);
 
-  if (error) return null;
-  return authority;
+  if (error || !data || data.length === 0) return null;
+  return data[0];
 }
 
 /**

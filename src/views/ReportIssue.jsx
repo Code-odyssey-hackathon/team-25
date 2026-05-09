@@ -137,8 +137,27 @@ export default function ReportIssue() {
       ...prev,
       description: transcript,
       ...(parsedData?.issue_type ? { issue_type: parsedData.issue_type } : {}),
-      ...(parsedData?.severity ? { severity: parsedData.severity } : {})
+      ...(parsedData?.severity ? { severity: parsedData.severity } : {}),
+      ...(parsedData?.location_name ? { location_name: parsedData.location_name } : {}),
+      ...(parsedData?.address ? { address: parsedData.address } : {}),
+      ...(parsedData?.city ? { city: parsedData.city } : {}),
+      ...(parsedData?.state ? { state: parsedData.state } : {}),
+      ...(parsedData?.pincode ? { pincode: parsedData.pincode } : {})
     }));
+    // Show what fields were auto-filled from voice
+    const filledFields = [];
+    if (parsedData?.issue_type) filledFields.push("Issue Type");
+    if (parsedData?.severity) filledFields.push("Severity");
+    if (parsedData?.location_name) filledFields.push("Location");
+    if (parsedData?.address) filledFields.push("Address");
+    if (parsedData?.city) filledFields.push("City");
+    if (parsedData?.pincode) filledFields.push("Pincode");
+    
+    if (filledFields.length > 0) {
+      showToast(`Voice filled: ${filledFields.join(", ")}`, "success");
+    } else {
+      showToast("Voice transcribed successfully!", "success");
+    }
   }
 
   async function handleSubmit(e) {

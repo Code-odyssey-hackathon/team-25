@@ -144,54 +144,33 @@ export async function calculateDifferenceHash(file) {
  * @returns {Promise<number[]>} - The CLIP embedding as a vector
  */
 export async function calculateCLIPEmbedding(file) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const reader = new FileReader();
-    
     reader.onload = async (e) => {
       try {
-        const base64 = e.target.result;
-        
-        // Call Hugging Face Inference API for CLIP embedding
-        const response = await fetch(
-          'https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32',
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || 'hf_dummy_key'}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              inputs: base64,
-              options: {
-                wait_for_model: true
-              }
-            })
+        const base64Data = e.target.result;
+        const response = await fetch('/api/generate-embedding', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageBase64: base64Data }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.embedding) {
+            console.log("CLIP embedding generated successfully");
+            resolve(data.embedding);
+            return;
           }
-        );
-        
-        if (!response.ok) {
-          throw new Error(`CLIP API error: ${response.statusText}`);
         }
-        
-        const data = await response.json();
-        
-        // Extract embedding vector (usually 512 dimensions for CLIP)
-        const embedding = Array.isArray(data) ? data : data[0];
-        
-        // Ensure we have exactly 512 dimensions
-        if (embedding.length !== 512) {
-          console.warn(`CLIP embedding has ${embedding.length} dimensions, expected 512`);
-        }
-        
-        resolve(embedding.slice(0, 512));
+        console.warn("CLIP embedding API failed, using zero vector");
+        resolve(new Array(512).fill(0));
       } catch (error) {
-        console.error('CLIP embedding error:', error);
-        // Return zero vector on error to not block uploads
+        console.warn("CLIP embedding generation failed:", error);
         resolve(new Array(512).fill(0));
       }
     };
-    
-    reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
 }
@@ -242,7 +221,10 @@ export async function checkDuplicateByHash(hash, supabase) {
 }
 
 /**
- * Find near-duplicates using perceptual hash
+ * Find near-duplicates using perceptual hash (client-side comparison)
+ * FIX P-1: Restored working near-duplicate detection.
+ * Since the server-side RPC is unavailable, this fetches recent hashes
+ * and compares them client-side using Hamming distance.
  * @param {bigint} phash - The perceptual hash to compare
  * @param {number} threshold - Hamming distance threshold (default: 10)
  * @param {object} supabase - Supabase client instance
@@ -250,20 +232,51 @@ export async function checkDuplicateByHash(hash, supabase) {
  */
 export async function findNearDuplicates(phash, threshold = 10, supabase) {
   try {
-    const { data: similarImages, error } = await supabase
-      .rpc('find_near_duplicates', {
-        query_phash: Number(phash),
-        threshold: threshold
-      });
-    
-    if (error) throw error;
-    
+    // Fetch recent reports that have perceptual hashes stored
+    const { data: recentReports, error } = await supabase
+      .from('reports')
+      .select('id, location_name, perceptual_hash, created_at, photo_url')
+      .not('perceptual_hash', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error || !recentReports) {
+      console.warn('Near-duplicate query failed:', error?.message);
+      return { hasNearDuplicates: false, similarImages: [] };
+    }
+
+    const similarImages = [];
+
+    for (const report of recentReports) {
+      try {
+        const existingHash = BigInt(report.perceptual_hash);
+        const distance = hammingDistance(phash, existingHash);
+
+        if (distance <= threshold) {
+          similarImages.push({
+            id: report.id,
+            location: report.location_name,
+            distance,
+            similarity: Math.round((1 - distance / 64) * 100),
+            photo_url: report.photo_url,
+            created_at: report.created_at,
+          });
+        }
+      } catch (e) {
+        // Skip reports with invalid hash values
+        continue;
+      }
+    }
+
+    // Sort by closest match first
+    similarImages.sort((a, b) => a.distance - b.distance);
+
     return {
-      hasNearDuplicates: similarImages && similarImages.length > 0,
-      similarImages: similarImages || []
+      hasNearDuplicates: similarImages.length > 0,
+      similarImages,
     };
-  } catch (error) {
-    console.error('Error finding near-duplicates:', error);
+  } catch (err) {
+    console.warn('Near-duplicate detection failed:', err);
     return { hasNearDuplicates: false, similarImages: [] };
   }
 }
@@ -277,25 +290,8 @@ export async function findNearDuplicates(phash, threshold = 10, supabase) {
  * @returns {Promise<object>} - { hasSimilarImages: boolean, similarImages: array }
  */
 export async function findSimilarImages(embedding, threshold = 0.85, supabase, excludeId = null) {
-  try {
-    const { data: similarImages, error } = await supabase
-      .rpc('find_similar_images', {
-        query_embedding: embedding,
-        similarity_threshold: threshold,
-        match_count: 10,
-        exclude_id: excludeId
-      });
-    
-    if (error) throw error;
-    
-    return {
-      hasSimilarImages: similarImages && similarImages.length > 0,
-      similarImages: similarImages || []
-    };
-  } catch (error) {
-    console.error('Error finding similar images:', error);
-    return { hasSimilarImages: false, similarImages: [] };
-  }
+  // Disabled: RPC 'find_similar_images' is not present in the new schema
+  return { hasSimilarImages: false, similarImages: [] };
 }
 
 /**

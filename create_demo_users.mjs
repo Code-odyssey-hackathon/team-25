@@ -18,44 +18,51 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 async function createDemoUsers() {
   console.log("Setting up demo users for JanaVaani...");
-
-  // 1. Setup Admin
-  const adminEmail = 'admin@pwd.karnataka.gov.in';
-  const adminPassword = 'password123';
-  
-  let adminId;
   const { data: existingAdminUsers, error: adminListErr } = await supabase.auth.admin.listUsers();
-  const existingAdmin = existingAdminUsers?.users.find(u => u.email === adminEmail);
-  
-  if (existingAdmin) {
-    adminId = existingAdmin.id;
-    console.log("✅ Admin auth user already exists.");
-  } else {
-    const { data: adminAuthData, error: adminAuthErr } = await supabase.auth.admin.createUser({
-      email: adminEmail,
-      password: adminPassword,
-      email_confirm: true
-    });
-    if (adminAuthErr) throw adminAuthErr;
-    adminId = adminAuthData.user.id;
-    console.log("✅ Created Admin auth user.");
-  }
+  if (adminListErr) throw adminListErr;
 
-  // Check if authority record exists
-  const { data: authRecord } = await supabase.from('authorities').select('*').eq('email', adminEmail).single();
-  if (!authRecord) {
-    await supabase.from('authorities').insert({
-      auth_user_id: adminId,
-      name: 'Demo Admin Officer',
-      email: adminEmail,
-      role: 'SUPER_ADMIN',
-      department: 'PWD Karnataka',
-      jurisdiction: { state: 'Karnataka' },
-      is_active: true
-    });
-    console.log("✅ Created Authority record for Admin.");
-  } else {
-    console.log("✅ Authority record already exists.");
+  // Check if authority records exist
+  const adminProfiles = [
+    { email: 'municipal@karnataka.gov.in', name: 'Demo Municipal Officer', role: 'HDMC_OFFICER', level: 'MUNICIPAL' },
+    { email: 'dc@karnataka.gov.in', name: 'Demo District Collector', role: 'STATE_AUTHORITY', level: 'DISTRICT_COLLECTOR' },
+    { email: 'minister@karnataka.gov.in', name: 'Demo Minister of Welfare', role: 'SUPER_ADMIN', level: 'MINISTER_OF_WELFARE' }
+  ];
+
+  for (const profile of adminProfiles) {
+    let uId;
+    const existing = existingAdminUsers?.users.find(u => u.email === profile.email);
+    if (existing) {
+      uId = existing.id;
+    } else {
+      const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+        email: profile.email,
+        password: 'password123',
+        email_confirm: true
+      });
+      if (authErr) throw authErr;
+      uId = authData.user.id;
+      console.log(`✅ Created auth user for ${profile.email}`);
+    }
+
+    const { data: authRecord } = await supabase.from('authorities').select('*').eq('email', profile.email).single();
+    if (!authRecord) {
+      await supabase.from('authorities').insert({
+        auth_user_id: uId,
+        name: profile.name,
+        email: profile.email,
+        role: profile.role,
+        department: 'Govt of Karnataka',
+        jurisdiction: { state: 'Karnataka', level: profile.level },
+        is_active: true
+      });
+      console.log(`✅ Created Authority record for ${profile.level}.`);
+    } else {
+      // Update jurisdiction if missing level
+      await supabase.from('authorities').update({
+        jurisdiction: { ...authRecord.jurisdiction, level: profile.level }
+      }).eq('id', authRecord.id);
+      console.log(`✅ Authority record exists for ${profile.level}. Updated jurisdiction.`);
+    }
   }
 
   // 2. Setup Engineer
@@ -97,9 +104,9 @@ async function createDemoUsers() {
 
   console.log("\n🎉 DEMO CREDENTIALS READY");
   console.log("-----------------------------------------");
-  console.log("Admin Login:");
-  console.log(`Email: ${adminEmail}`);
-  console.log(`Password: ${adminPassword}`);
+  console.log("Admin (Municipal): municipal@karnataka.gov.in / password123");
+  console.log("Admin (DC):       dc@karnataka.gov.in / password123");
+  console.log("Admin (Minister): minister@karnataka.gov.in / password123");
   console.log("-----------------------------------------");
   console.log("Engineer Login:");
   console.log(`Email: ${engineerEmail}`);

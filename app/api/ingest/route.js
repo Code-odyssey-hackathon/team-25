@@ -19,18 +19,18 @@ function stripPII(text) {
 }
 
 // Simulated Llama-3-8B + ChromaDB Embedding and Clustering
-async function generateEmbeddingAndCluster(text, bridgeId) {
+async function generateEmbeddingAndCluster(text, locationName) {
   // Mock delay for AI processing
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Return a mock master ticket ID based on the bridge (simulating that reports for the same bridge group together)
-  const masterHash = crypto.createHash('md5').update(bridgeId).digest('hex');
+  // Return a mock master ticket ID based on the location (simulating that reports for the same location group together)
+  const masterHash = crypto.createHash('md5').update(locationName || 'unknown').digest('hex');
   return `master-${masterHash.substring(0, 8)}`;
 }
 
 export async function POST(request) {
   try {
-    const { report_id, raw_description, bridge_id } = await request.json();
+    const { report_id, raw_description, location_name } = await request.json();
 
     if (!report_id || !raw_description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(request) {
     console.log(`[Ingestion Pipeline] Stripped PII. Safe text: "${safeDescription.substring(0, 50)}..."`);
 
     // 2. Semantic Embedding & Clustering
-    const masterTicketId = await generateEmbeddingAndCluster(safeDescription, bridge_id);
+    const masterTicketId = await generateEmbeddingAndCluster(safeDescription, location_name);
     console.log(`[Ingestion Pipeline] Clustered into Master Ticket: ${masterTicketId}`);
 
     // In a real implementation, we would update the `reports` table in Supabase

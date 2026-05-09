@@ -1,7 +1,14 @@
 <div align="center">
+
+  **Team 25 — Run Time Error** | Code Odyssey Hackathon
+
+  ---
+
   <img src="public/favicon.svg" alt="JanaVaani Logo" width="120" height="120" />
   <h1>JanaVaani 🌉</h1>
   <p><strong>India's First AI-Powered Civic Infrastructure Safety Network</strong></p>
+
+  <p><em>Problem Statement:</em> <strong>Build an AI-powered civic infrastructure safety & accountability platform that enables citizens to report public infrastructure issues, allows authorities to triage and assign tasks to engineers, and creates a transparent, data-driven ecosystem for resolving civic problems like road damage, bridge cracks, water supply issues, and more.</strong></p>
 
   <p>
     <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.2.6-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
@@ -179,5 +186,6 @@ We welcome contributions!
 ---
 
 <div align="center">
-  <p>Built with ❤️ by <strong>Team 25</strong> for a safer tomorrow.</p>
+  <p>Built with ❤️ by <strong>Team 25 — Run Time Error</strong> | Code Odyssey Hackathon</p>
+  <p><em>For a safer, smarter, and more accountable civic infrastructure tomorrow.</em></p>
 </div>

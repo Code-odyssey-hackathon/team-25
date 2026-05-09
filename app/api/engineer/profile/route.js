@@ -54,7 +54,7 @@ export async function POST(request) {
     }
 
     if (!engineer) {
-      return NextResponse.json({ error: 'Engineer profile not found' }, { status: 404 });
+      return NextResponse.json({ engineer: null }, { status: 200 });
     }
 
     return NextResponse.json({ engineer });

@@ -30,7 +30,7 @@ export default function CitizenProfile() {
       try {
         const { data, error } = await supabase
           .from('reports')
-          .select('*, bridges:bridge_id(name, district, state)')
+          .select('*')
           .eq('citizen_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50);
@@ -212,7 +212,6 @@ export default function CitizenProfile() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {reports.map(r => {
                 const sc = statusColors[r.status] || statusColors.PENDING;
-                const bridge = r.bridges || {};
                 const date = new Date(r.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
                 return (
                   <div key={r.id} className="report-card" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
@@ -226,9 +225,9 @@ export default function CitizenProfile() {
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <div>
-                          <strong style={{ fontSize: '1.05rem' }}>{String(bridge.name || r.bridge_name || 'Unknown Location')}</strong>
+                          <strong style={{ fontSize: '1.05rem' }}>{String(r.location_name || r.bridge_name || 'Unknown Location')}</strong>
                           <p className="text-gray" style={{ fontSize: '0.8rem', marginTop: '0.15rem' }}>
-                            {bridge.district && typeof bridge.district === 'string' ? `${bridge.district}, ${bridge.state || ''}` : ''} · {String(date)}
+                            {r.city ? `${r.city}, ${r.state || ''}` : ''} · {String(date)}
                           </p>
                         </div>
                         <span style={{

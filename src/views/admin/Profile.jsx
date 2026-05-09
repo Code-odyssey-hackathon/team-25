@@ -27,12 +27,10 @@ export default function AdminProfile() {
     if (!isAdmin) return;
     async function fetchData() {
       try {
-        const [reportsRes, bridgesRes] = await Promise.all([
-          supabase.from('reports').select('id, status, created_at, responded_at, bridge_id, issue_type, severity').order('created_at', { ascending: false }).limit(200),
-          supabase.from('bridges').select('id, name, status, risk_score, district').order('risk_score', { ascending: false }),
+        const [reportsRes] = await Promise.all([
+          supabase.from('reports').select('id, status, created_at, responded_at, issue_type, severity').order('created_at', { ascending: false }).limit(200)
         ]);
         setReports(reportsRes.data || []);
-        setBridges(bridgesRes.data || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -63,9 +61,7 @@ export default function AdminProfile() {
   const ignored = reports.filter(r => r.status === 'IGNORED' || r.status === 'DISMISSED').length;
   const responseRate = totalReports > 0 ? Math.round((actioned / totalReports) * 100) : 0;
 
-  const criticalBridges = bridges.filter(b => b.status === 'CRITICAL').length;
-  const warningBridges = bridges.filter(b => b.status === 'WARNING').length;
-  const safeBridges = bridges.filter(b => b.status === 'SAFE').length;
+
 
   // Accountability 
   const accountabilityData = { total_actioned: actioned, total_ignored: ignored };
@@ -199,55 +195,6 @@ export default function AdminProfile() {
                 : 'linear-gradient(90deg, #b91c1c, #ef4444, #f87171)',
             borderRadius: 10,
           }} />
-        </div>
-      </div>
-
-      {/* ─── Jurisdiction Overview ─── */}
-      <div>
-        <div className="section-title">Jurisdiction Overview</div>
-        <div className="grid-3" style={{ marginBottom: '2rem' }}>
-          <div className="card-dark">
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>{String(criticalBridges)}</div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Critical</div>
-          </div>
-          <div className="card-dark">
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#f97316' }}>{String(warningBridges)}</div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Warning</div>
-          </div>
-          <div className="card-dark">
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#34d399' }}>{String(safeBridges)}</div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Safe</div>
-          </div>
-        </div>
-
-        {/* Top Risk Bridges */}
-        <div className="section-title">Highest Risk Locations</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          {bridges.slice(0, 5).map((b, i) => {
-            const riskColor = b.status === 'CRITICAL' ? '#ef4444' : b.status === 'WARNING' ? '#f97316' : b.status === 'MONITOR' ? '#f59e0b' : '#10b981';
-            return (
-              <Link key={b.id} to={`/bridge/${b.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="report-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem' }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: `${riskColor}18`, border: `1px solid ${riskColor}35`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.85rem', fontWeight: 700, color: riskColor, flexShrink: 0,
-                  }}>
-                    #{String(i + 1)}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{String(b.name || 'Unknown')}</div>
-                    <div className="text-gray" style={{ fontSize: '0.8rem' }}>{String(b.district || '')}</div>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: riskColor }}>{String(b.risk_score)}</div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 600, color: riskColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>{String(b.status)}</div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
         </div>
       </div>
     </div>
