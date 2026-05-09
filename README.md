@@ -64,6 +64,22 @@
 
 ---
 
+## 🔑 Live Demo & Credentials
+
+To fully test the end-to-end workflow (Citizen → Authority → Engineer), use the following credentials on the live deployment:
+
+**Authority / Admin Portal** (`/admin/login`)
+- **Email:** `admin@pwd.karnataka.gov.in`
+- **Password:** `password123`
+- *Capabilities: Review reports, update statuses, and assign tasks to engineers.*
+
+**Field Engineer Portal** (`/engineer/login`)
+- **Email:** `engineer@pwd.karnataka.gov.in`
+- **Password:** `password123`
+- *Capabilities: View assigned tasks, update inspection statuses to COMPLETED.*
+
+---
+
 ## 🛠️ Technical Stack
 
 | Category | Technology |

@@ -15,8 +15,8 @@ export default function Analytics() {
   const [reportsLoading, setReportsLoading] = useState(true)
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) navigate('/admin/login')
-  }, [authLoading, isAdmin, navigate])
+    if (!authLoading && !isAdmin) router.push('/admin/login')
+  }, [authLoading, isAdmin, router])
 
   useEffect(() => {
     if (isAdmin) {

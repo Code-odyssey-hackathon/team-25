@@ -81,13 +81,15 @@ function TaskCard({ task, onStatusChange }) {
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-        <span className="text-gray" style={{ fontSize: '0.85rem' }}>
-          🔗 <Link href={`/bridge/${task.bridge_id}`} style={{ color: 'var(--color-accent)' }}>
-            {task.bridge_name || 'View Bridge'}
-          </Link>
-        </span>
-      </div>
+      {task.report && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem' }}>📍 Location</div>
+          <div style={{ fontSize: '1rem', fontWeight: 600 }}>{task.report.location_name || 'Site'}</div>
+          <div style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
+            <span style={{ color: '#94a3b8' }}>Type:</span> {task.report.issue_type} · <span style={{ color: '#94a3b8' }}>Severity:</span> {task.report.severity}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <select
@@ -131,9 +133,9 @@ export default function EngineerDashboard() {
   // Auth guard: if not engineer, redirect to engineer login
   useEffect(() => {
     if (!authLoading && !isEngineer) {
-      navigate('/engineer/login');
+      router.push('/engineer/login');
     }
-  }, [authLoading, isEngineer, navigate]);
+  }, [authLoading, isEngineer, router]);
 
   // Fetch tasks
   useEffect(() => {

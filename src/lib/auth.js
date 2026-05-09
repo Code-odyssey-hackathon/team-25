@@ -70,9 +70,9 @@ export async function getSession() {
 /**
  * Get the current authority profile (if signed in).
  */
-export async function getCurrentAuthority() {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) return null;
+export async function getCurrentAuthority(providedUser = null) {
+  const user = providedUser || (await supabase.auth.getUser()).data.user;
+  if (!user) return null;
 
   const { data: authority, error } = await supabase
     .from('authorities')
@@ -103,17 +103,20 @@ export async function signInEngineer(email, password) {
 
   if (error) throw error;
 
-  // Fetch the engineer profile linked to this auth user
-  const { data: engineer, error: profileError } = await supabase
-    .from('engineers')
-    .select('*')
-    .eq('auth_user_id', data.user.id)
-    .single();
+  // Fetch the engineer profile via API to bypass potentially missing RLS
+  const res = await fetch('/api/engineer/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: data.user.id })
+  });
 
-  if (profileError) {
+  if (!res.ok) {
+    const errData = await res.json();
     await supabase.auth.signOut();
     throw new Error('This account is not registered as an engineer.');
   }
+
+  const { engineer } = await res.json();
 
   if (!engineer.is_active) {
     await supabase.auth.signOut();
@@ -136,16 +139,18 @@ export async function signInEngineer(email, password) {
 /**
  * Get the current engineer profile (if signed in).
  */
-export async function getCurrentEngineer() {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) return null;
+export async function getCurrentEngineer(providedUser = null) {
+  const user = providedUser || (await supabase.auth.getUser()).data.user;
+  if (!user) return null;
 
-  const { data: engineer, error } = await supabase
-    .from('engineers')
-    .select('*')
-    .eq('auth_user_id', user.id)
-    .single();
+  // Fetch via API to bypass RLS
+  const res = await fetch('/api/engineer/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: user.id })
+  });
 
-  if (error) return null;
+  if (!res.ok) return null;
+  const { engineer } = await res.json();
   return engineer;
 }

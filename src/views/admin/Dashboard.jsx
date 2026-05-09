@@ -12,9 +12,60 @@ import { z } from 'zod'
 import { useToast } from '../../context/ToastContext'
 import { exportToCSV, exportToPDF, getReportStats } from '../../lib/exportReports'
 import InspectionScheduler from '../../components/InspectionScheduler'
-import { getActiveEngineers } from '../../lib/engineers'
+import { getActiveEngineers, createEngineer } from '../../lib/engineers'
 import { createTask } from '../../lib/tasks'
 import { FLAGS } from '../../lib/features'
+
+function AddEngineerForm({ onSuccess, onCancel }) {
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+    defaultValues: { specialization: 'Civil', department: 'PWD' }
+  })
+
+  const onSubmit = async (data) => {
+    try {
+      const result = await createEngineer(data)
+      reset()
+      alert(`✅ Engineer Added Successfully!\n\nLogin Email: ${data.email}\nTemporary Password: password123`)
+      onSuccess()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'left' }}>
+      <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.2rem' }}>👷 Add New Field Engineer</h3>
+      <div className="grid-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Full Name</label>
+          <input className="form-input" style={{ margin: 0 }} {...register('name', { required: 'Name is required' })} />
+          {errors.name && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.name.message}</span>}
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Email Address</label>
+          <input className="form-input" style={{ margin: 0 }} type="email" {...register('email', { required: 'Email is required' })} />
+          {errors.email && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.email.message}</span>}
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Specialization</label>
+          <input className="form-input" style={{ margin: 0 }} {...register('specialization')} placeholder="e.g. Civil, Electrical" />
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Department</label>
+          <input className="form-input" style={{ margin: 0 }} {...register('department')} />
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Contact Phone</label>
+          <input className="form-input" style={{ margin: 0 }} {...register('contact_phone')} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+        <button type="submit" className="btn-primary" disabled={isSubmitting}>{isSubmitting ? 'Adding...' : 'Add Engineer'}</button>
+        <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
+  )
+}
 
 const BridgeSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
@@ -145,8 +196,8 @@ function ReportRow({ report, onUpdate, authority }) {
               <img src={report.photo_url} alt="Report" onClick={() => setLightbox(true)} style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', cursor: 'zoom-in', border: '2px solid var(--color-glass-border)', flexShrink: 0 }} />
             )}
             <div>
-              <strong style={{ fontSize: '1.1rem' }}>{String(report.bridgeName)}</strong>
-              <span className="badge" style={{ background: 'rgba(255,255,255,0.1)', marginLeft: '0.5rem' }}>{report.damage_type}</span>
+              <strong style={{ fontSize: '1.1rem' }}>{report.location_name || 'Generic Location'}</strong>
+              <span className="badge" style={{ background: 'rgba(255,255,255,0.1)', marginLeft: '0.5rem' }}>{report.issue_type}</span>
               <span className="badge" style={{ background: report.severity === 'DANGEROUS' ? '#ef4444' : '#f97316', marginLeft: '0.5rem' }}>{report.severity}</span>
             </div>
           </div>
@@ -226,12 +277,10 @@ function ReportRow({ report, onUpdate, authority }) {
                   setAssigning(true);
                   try {
                     await createTask({
-                      bridge_id:   report.bridge_id,
-                      bridge_name: report.bridgeName,
                       report_id:   report.id,
                       assigned_by: authority.id,
                       assigned_to: assignForm.engineerId,
-                      title:       `Inspect ${report.bridgeName} — ${report.damage_type}`,
+                      title:       `Inspect: ${report.issue_type} at ${report.location_name || 'Site'}`,
                       description: assignForm.notes,
                       priority:    assignForm.priority,
                       due_date:    assignForm.dueDate || null,
@@ -265,6 +314,7 @@ export default function AdminDashboard() {
   const [pendingReports, setPendingReports] = useState([])
   const [reportsLoading, setReportsLoading] = useState(true)
   const [addBridgeOpen, setAddBridgeOpen] = useState(false)
+  const [addEngineerOpen, setAddEngineerOpen] = useState(false)
 
   // Export handlers
   const handleExportCSV = () => {
@@ -297,11 +347,7 @@ export default function AdminDashboard() {
             .order('created_at', { ascending: false })
           if (error) throw error
 
-          const bridgeIds = data.map(r => r.bridge_id)
-          const { data: bridgeData } = await supabase.from('bridges').select('id, name, state').in('id', bridgeIds)
-          const bridgeMap = Object.fromEntries((bridgeData || []).map(b => [b.id, b]))
-          
-          setPendingReports(data.map(r => ({ ...r, bridgeName: bridgeMap[r.bridge_id]?.name || 'Unknown Location' })))
+          setPendingReports(data)
         } catch (err) {
           console.error(err)
         } finally {
@@ -376,8 +422,11 @@ export default function AdminDashboard() {
 
       {addBridgeOpen ? (
         <AddBridgeForm onSuccess={() => { setAddBridgeOpen(false); refetchBridges() }} onCancel={() => setAddBridgeOpen(false)} />
+      ) : addEngineerOpen ? (
+        <AddEngineerForm onSuccess={() => setAddEngineerOpen(false)} onCancel={() => setAddEngineerOpen(false)} />
       ) : (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '2rem' }}>
+          <button className="btn-secondary" onClick={() => setAddEngineerOpen(true)}>👷 Add New Engineer</button>
           <button className="btn-secondary" onClick={() => setAddBridgeOpen(true)}>➕ Add New Location</button>
         </div>
       )}

@@ -42,19 +42,7 @@ export default function ReportFeed() {
         .limit(50)
       if (error) throw error
 
-      const bridgeIds = [...new Set((data || []).map(r => r.bridge_id))]
-      const { data: bridgeData } = await supabase
-        .from('bridges')
-        .select('id, name, district, state')
-        .in('id', bridgeIds)
-      const bridgeMap = Object.fromEntries((bridgeData || []).map(b => [b.id, b]))
-
-      setReports((data || []).map(r => ({
-        ...r,
-        bridgeName: bridgeMap[r.bridge_id]?.name || 'Unknown Location',
-        bridgeDistrict: bridgeMap[r.bridge_id]?.district || '',
-        bridgeState: bridgeMap[r.bridge_id]?.state || ''
-      })))
+      setReports(data || [])
     } catch (err) {
       console.error(err)
     } finally {
@@ -72,15 +60,7 @@ export default function ReportFeed() {
         schema: 'public',
         table: 'reports'
       }, async (payload) => {
-        // Fetch bridge details for the new report
-        const { data: bData } = await supabase.from('bridges').select('name, district, state').eq('id', payload.new.bridge_id).single();
-        const newReport = {
-          ...payload.new,
-          bridgeName: bData?.name || 'Unknown Location',
-          bridgeDistrict: bData?.district || '',
-          bridgeState: bData?.state || ''
-        };
-        setReports(prev => [newReport, ...prev])
+        setReports(prev => [payload.new, ...prev])
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -132,13 +112,13 @@ export default function ReportFeed() {
                 <div key={r.id} className="report-card" style={{ textAlign: 'left' }}>
                   <div className="flex-between" style={{ marginBottom: '0.75rem' }}>
                     <div>
-                      <Link href={`/bridge/${r.bridge_id}`} style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff' }}>{r.bridgeName}</Link>
-                      <span className="text-gray" style={{ fontSize: '0.85rem', marginLeft: '0.5rem' }}>{r.bridgeDistrict}, {r.bridgeState}</span>
+                      <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff' }}>{r.location_name || 'Generic Location'}</span>
+                      <span className="text-gray" style={{ fontSize: '0.85rem', marginLeft: '0.5rem' }}>{r.city}, {r.state}</span>
                     </div>
                     <span className="text-gray" style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{timeAgo(r.created_at)}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                    <span className="badge" style={{ background: dmgColorMap[r.damage_type] || '#94a3b8', color: '#fff' }}>{r.damage_type?.replace('_', ' ')}</span>
+                    <span className="badge" style={{ background: dmgColorMap[r.issue_type] || '#94a3b8', color: '#fff' }}>{r.issue_type?.replace('_', ' ')}</span>
                     <span className="badge" style={{ background: sevColorMap[r.severity], color: '#fff' }}>{r.severity}</span>
                     <span className="badge" style={{ background: `${tb.color}22`, color: tb.color, border: `1px solid ${tb.color}44` }}>{tb.text}</span>
                     {r.detected_age_group && <span className="badge" style={{ background: 'rgba(59,130,246,0.2)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)' }}>🏗️ {r.detected_age_group}</span>}
@@ -151,7 +131,7 @@ export default function ReportFeed() {
                     )}
                     <ReportVerification 
                       reportId={r.id} 
-                      bridgeId={r.bridge_id}
+                      locationName={r.location_name}
                       initialCount={r.verification_count || 0}
                       isOwnReport={r.citizen_id === null} // Simplified check
                     />

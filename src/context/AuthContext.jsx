@@ -2,7 +2,7 @@
  * JanaVaani — Auth Context
  * Provides auth state (user + authority/engineer profile) to the React component tree.
  */
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { getCurrentAuthority, getCurrentEngineer, onAuthStateChange } from '../lib/auth';
 
@@ -14,67 +14,58 @@ export function AuthProvider({ children }) {
   const [engineer, setEngineer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
+  
+  // Prevent multiple simultaneous profile fetches
+  const fetchInProgress = useRef(false);
+
+  const fetchProfile = useCallback(async (currUser) => {
+    if (!currUser || fetchInProgress.current) return;
+    
+    fetchInProgress.current = true;
+    try {
+      // Try to fetch authority profile first
+      const auth = await getCurrentAuthority(currUser);
+      if (auth) {
+        setAuthority(auth);
+        setEngineer(null);
+      } else {
+        // Not an authority, check if engineer
+        const eng = await getCurrentEngineer(currUser);
+        setEngineer(eng);
+        setAuthority(null);
+      }
+    } catch (err) {
+      // Handle lock contention gracefully
+      if (err?.message?.includes('Lock')) {
+        console.warn('Auth profile fetch deferred due to lock contention');
+      } else {
+        console.error('Profile fetch error:', err);
+      }
+    } finally {
+      fetchInProgress.current = false;
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // Check if email is confirmed
-        setEmailConfirmed(!!session.user.email_confirmed_at);
-        
-        // Try to fetch authority profile first, then engineer
-        getCurrentAuthority().then((auth) => {
-          if (auth) {
-            setAuthority(auth);
-            setEngineer(null);
-          } else {
-            // Not an authority, check if engineer
-            getCurrentEngineer().then((eng) => {
-              setEngineer(eng);
-              setAuthority(null);
-            });
-          }
-        }).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    }).catch(err => {
-      // Suppress lock contention errors - these are benign when multiple tabs are open
-      if (err?.message?.includes('Lock') && err?.message?.includes('was released')) {
-        console.warn('Auth lock contention (benign):', err.message);
-        setLoading(false);
-        return;
-      }
-      console.error('Auth session error:', err);
-      setLoading(false);
-    });
+    // Listen for auth state changes (including initial session)
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      const currUser = session?.user ?? null;
+      
+      setUser(currUser);
+      setEmailConfirmed(!!currUser?.email_confirmed_at);
 
-    // Listen for changes
-    const { data: { subscription } } = onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setEmailConfirmed(!!session.user.email_confirmed_at);
-        getCurrentAuthority().then((auth) => {
-          if (auth) {
-            setAuthority(auth);
-            setEngineer(null);
-          } else {
-            getCurrentEngineer().then((eng) => {
-              setEngineer(eng);
-              setAuthority(null);
-            });
-          }
-        });
+      if (currUser) {
+        await fetchProfile(currUser);
       } else {
         setAuthority(null);
         setEngineer(null);
-        setEmailConfirmed(false);
+        setLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
   return (
     <AuthContext.Provider value={{ 

@@ -105,7 +105,7 @@ export default function BridgeDetail() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-        <button className="btn-danger" style={{ width: 'auto' }} onClick={() => navigate(`/report/${bridge.id}`)}>📸 Report This Location</button>
+        <button className="btn-danger" style={{ width: 'auto' }} onClick={() => router.push(`/report/${bridge.id}`)}>📸 Report This Location</button>
       </div>
 
       {isHeavyRain && (
@@ -198,7 +198,7 @@ export default function BridgeDetail() {
               <div key={r.id} className="report-card">
                 <div className="flex-between" style={{ marginBottom: '1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span className="badge" style={{ background: dmgColorMap[r.damage_type] }}>{r.damage_type.replace('_', ' ')}</span>
+                    <span className="badge" style={{ background: dmgColorMap[r.issue_type || r.damage_type] || '#94a3b8' }}>{(r.issue_type || r.damage_type || 'Unknown').replace('_', ' ')}</span>
                     <span className="badge" style={{ background: sevColorMap[r.severity] }}>{r.severity}</span>
                   </div>
                   <div className="text-gray" style={{ fontSize: '0.8rem' }}>{new Date(r.created_at).toLocaleDateString()}</div>

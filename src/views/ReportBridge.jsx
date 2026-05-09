@@ -13,7 +13,7 @@ import { useToast } from '../context/ToastContext'
 import { FLAGS } from '../lib/features'
 import VoiceRecorder from '../components/VoiceRecorder'
 
-const ISSUE_TYPES = ['POTHOLE', 'ROAD_CRACK', 'WATER_LEAK', 'STREETLIGHT_OUT', 'GARBAGE_DUMP', 'STRUCTURAL_DAMAGE', 'DRAINAGE_ISSUE', 'OTHER'];
+const DAMAGE_TYPES = ['POTHOLE', 'ROAD_CRACK', 'WATER_LEAK', 'STREETLIGHT_OUT', 'GARBAGE_DUMP', 'STRUCTURAL_DAMAGE', 'DRAINAGE_ISSUE', 'OTHER'];
 const SEVERITIES = ['VISIBLE', 'SERIOUS', 'DANGEROUS'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -30,7 +30,7 @@ export default function ReportBridge() {
   const [error, setError] = useState(null);
   const [bridges, setBridges] = useState([]);
   const [bridgesLoading, setBridgesLoading] = useState(true);
-  const [form, setForm] = useState({ bridge_id: bridgeId || '', damage_type: 'POTHOLE', severity: 'SERIOUS', description: '' });
+  const [form, setForm] = useState({ bridge_id: bridgeId || '', issue_type: 'POTHOLE', severity: 'SERIOUS', description: '' });
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -75,7 +75,7 @@ export default function ReportBridge() {
         setClassificationResult(classification);
         setForm(prev => ({
           ...prev,
-          damage_type: classification.issue_type,
+          issue_type: classification.issue_type,
           description: classification.description
         }));
         showToast(`Issue classified as ${classification.issue_type} (${classification.confidence}% confidence)`, 'success');
@@ -94,7 +94,7 @@ export default function ReportBridge() {
     setForm(prev => ({
       ...prev,
       description: transcript,
-      ...(parsedData?.damage_type ? { damage_type: parsedData.damage_type } : {}),
+      ...(parsedData?.damage_type ? { issue_type: parsedData.damage_type } : {}),
       ...(parsedData?.severity ? { severity: parsedData.severity } : {})
     }));
   }
@@ -207,7 +207,7 @@ export default function ReportBridge() {
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn-primary" style={{ flex: 1 }} onClick={() => router.push('/feed')}>See All Reports</button>
-          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSuccess(false); setForm({ bridge_id: '', damage_type: 'POTHOLE', severity: 'SERIOUS', description: '' }); setPhoto(null); setPhotoPreview(null); }}>Report Another</button>
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSuccess(false); setForm({ bridge_id: '', issue_type: 'POTHOLE', severity: 'SERIOUS', description: '' }); setPhoto(null); setPhotoPreview(null); }}>Report Another</button>
         </div>
       </div>
     </div>
@@ -234,8 +234,8 @@ export default function ReportBridge() {
             </select>
           </label>
           <label>
-            <span style={{ fontWeight: 600 }}>Damage Type *</span>
-            <select className="form-input" value={form.damage_type} onChange={e => setForm({ ...form, damage_type: e.target.value })}>
+            <span style={{ fontWeight: 600 }}>Issue Type *</span>
+            <select className="form-input" value={form.issue_type} onChange={e => setForm({ ...form, issue_type: e.target.value })}>
               {DAMAGE_TYPES.map(d => <option key={d} value={d}>{d.replace('_', ' ')}</option>)}
             </select>
           </label>

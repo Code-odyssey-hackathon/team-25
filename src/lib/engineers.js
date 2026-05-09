@@ -1,7 +1,7 @@
 /**
  * JanaVaani — Engineers Service
  *
- * Helpers for fetching engineer profiles (for admin assignment dropdowns).
+ * Helpers for fetching and creating engineer profiles.
  */
 import { supabase } from './supabase';
 
@@ -10,12 +10,31 @@ import { supabase } from './supabase';
  * Returns array of { id, name, email, specialization, department }.
  */
 export async function getActiveEngineers() {
-  const { data, error } = await supabase
-    .from('engineers')
-    .select('id, name, email, specialization, department')
-    .eq('is_active', true)
-    .order('name');
+  const res = await fetch('/api/engineers');
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to fetch engineers');
+  }
+  const { engineers } = await res.json();
+  return engineers;
+}
 
-  if (error) throw error;
-  return data || [];
+/**
+ * Create a new engineer record.
+ * Uses API route to bypass RLS.
+ */
+export async function createEngineer(engineerData) {
+  const res = await fetch('/api/engineers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(engineerData),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to create engineer');
+  }
+
+  const { engineer } = await res.json();
+  return engineer;
 }

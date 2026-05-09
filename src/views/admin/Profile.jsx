@@ -20,8 +20,8 @@ export default function AdminProfile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) navigate('/admin/login');
-  }, [authLoading, isAdmin, navigate]);
+    if (!authLoading && !isAdmin) router.push('/admin/login');
+  }, [authLoading, isAdmin, router]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -121,7 +121,7 @@ export default function AdminProfile() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }} onClick={() => navigate('/admin/dashboard')}>
+            <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }} onClick={() => router.push('/admin/dashboard')}>
               Dashboard
             </button>
             <button onClick={handleLogout} className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>
