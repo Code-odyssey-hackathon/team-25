@@ -13,7 +13,7 @@ INSERT INTO authorities (
   role,
   department
 ) VALUES (
-  '2ff2c5ff-992d-4dce-813f-67d3ce15d344',
+  '4fdf5f20-5624-4d53-b8df-3cedbd40b13b',
   'Vaibhav Chavan Patil',
   'chavanpatilvaibhav395@gmail.com',
   'SUPER_ADMIN',

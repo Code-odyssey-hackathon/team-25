@@ -204,7 +204,7 @@ export default function AdminProfile() {
 
       {/* ─── Jurisdiction Overview ─── */}
       <div>
-        <div className="section-title">Bridge Jurisdiction Overview</div>
+        <div className="section-title">Jurisdiction Overview</div>
         <div className="grid-3" style={{ marginBottom: '2rem' }}>
           <div className="card-dark">
             <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>{String(criticalBridges)}</div>
@@ -221,7 +221,7 @@ export default function AdminProfile() {
         </div>
 
         {/* Top Risk Bridges */}
-        <div className="section-title">Highest Risk Bridges</div>
+        <div className="section-title">Highest Risk Locations</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           {bridges.slice(0, 5).map((b, i) => {
             const riskColor = b.status === 'CRITICAL' ? '#ef4444' : b.status === 'WARNING' ? '#f97316' : b.status === 'MONITOR' ? '#f59e0b' : '#10b981';

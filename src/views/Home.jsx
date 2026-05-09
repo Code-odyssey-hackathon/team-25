@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
+import { FLAGS } from '../lib/features'
 import { useBridges } from '../hooks/useBridges'
 import { getTruthCounter } from '../lib/truthCounter'
 import { getRainfall } from '../lib/weather'
-import { SkeletonText, SkeletonCard, SkeletonList, SkeletonBridgeCard } from '../components/Skeleton'
-import NearbyBridges from '../components/NearbyBridges'
+import { SkeletonText, SkeletonCard, SkeletonList, SkeletonLocationCard } from '../components/Skeleton'
+
 
 const createMarkerIcon = (status, score) => {
   const statusLower = status.toLowerCase();
@@ -76,6 +78,7 @@ export default function Home() {
   const [flyCoords, setFlyCoords] = useState(null)
   const [heatmapMode, setHeatmapMode] = useState(false)
   const [counter, setCounter] = useState({ officialCollapses: 42, realityCollapses: 170, gap: 128, realityDeaths: 202 })
+  const [userLocation, setUserLocation] = useState([15.3173, 75.7139]) // Default fallback location
 
   useEffect(() => {
     getTruthCounter().then(res => {
@@ -90,7 +93,26 @@ export default function Home() {
     }).catch(console.error)
   }, [])
 
-  const centerPosition = [15.3173, 75.7139]
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.latitude, position.coords.longitude])
+        },
+        (error) => {
+          console.log('Geolocation error:', error.message)
+          // Keep using default location if geolocation fails
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      )
+    }
+  }, [])
+
+  const centerPosition = userLocation
   const districts = ['ALL', ...new Set(bridges.map(b => b.district).filter(Boolean))]
   let filtered = bridges
   if (filter !== 'ALL') filtered = filtered.filter(b => b.status === filter)
@@ -101,7 +123,7 @@ export default function Home() {
 
   function handleCardClick(b) {
     setFlyCoords([b.lat, b.lng])
-    setTimeout(() => navigate(`/bridge/${b.id}`), 800)
+    setTimeout(() => router.push(`/bridge/${b.id}`), 800)
   }
 
   if (loading) return (
@@ -117,8 +139,8 @@ export default function Home() {
             ))}
           </div>
         </div>
-        <div className="bridge-list">
-          <SkeletonList count={6} renderItem={() => <SkeletonBridgeCard />} />
+        <div className="location-list">
+          <SkeletonList count={6} renderItem={() => <SkeletonLocationCard />} />
         </div>
       </div>
       <div className="map-container">
@@ -131,7 +153,7 @@ export default function Home() {
     <div className="page-container">
       <div className="card-red" style={{ textAlign: 'center', padding: '3rem' }}>
         <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚠️</div>
-        <p>Failed to load bridge data. Please refresh the page.</p>
+        <p>Failed to load location data. Please refresh the page.</p>
         <p className="text-gray" style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>{error.message}</p>
       </div>
     </div>
@@ -149,9 +171,9 @@ export default function Home() {
       <div className="home-layout" style={{ paddingTop: 'calc(var(--nav-height) + 36px)' }}>
         <div className="sidebar">
           <div className="sidebar-header" style={{ textAlign: 'left' }}>
-            <h2>Active Bridges</h2>
-            <p className="text-gray">{filtered.length} bridges · {bridges.filter(b => b.status === 'CRITICAL').length} critical</p>
-            <input className="form-input" placeholder="🔍 Search bridge name..." value={search} onChange={e => setSearch(e.target.value)} style={{ marginTop: '0.75rem', padding: '0.5rem 0.8rem', fontSize: '0.85rem' }} />
+            <h2>Active Locations</h2>
+            <p className="text-gray">{filtered.length} locations · {bridges.filter(b => b.status === 'CRITICAL').length} critical</p>
+            <input className="form-input" placeholder="🔍 Search location name..." value={search} onChange={e => setSearch(e.target.value)} style={{ marginTop: '0.75rem', padding: '0.5rem 0.8rem', fontSize: '0.85rem' }} />
             <select className="form-input" value={district} onChange={e => setDistrict(e.target.value)} style={{ marginTop: '0.5rem', padding: '0.5rem 0.8rem', fontSize: '0.85rem' }}>
               {districts.map(d => <option key={d} value={d}>{d === 'ALL' ? '— All Districts —' : d}</option>)}
             </select>
@@ -164,12 +186,12 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <NearbyBridges bridges={bridges} />
-          <div className="bridge-list">
+
+          <div className="location-list">
             {filtered.length > 0 ? filtered.map(b => (
-              <div key={b.id} className="bridge-card" style={{ borderLeft: `3px solid ${borderColor[b.status]}`, textAlign: 'left' }} onClick={() => handleCardClick(b)}>
-                <div className="bridge-name">{b.name}</div>
-                <div className="bridge-location">{b.district}, {b.state}</div>
+              <div key={b.id} className="location-card" style={{ borderLeft: `3px solid ${borderColor[b.status]}`, textAlign: 'left' }} onClick={() => handleCardClick(b)}>
+                <div className="location-name">{b.name}</div>
+                <div className="location-area">{b.district}, {b.state}</div>
                 <div className="flex-between">
                   <span className={`risk-badge status-${b.status.toLowerCase()}`}>
                     <div className="pulse-dot"></div>{b.status} ({b.risk_score})
@@ -177,7 +199,7 @@ export default function Home() {
                   {b.total_reports > 0 && <span className="text-orange" style={{ fontSize: '0.8rem' }}>📸 {b.total_reports}</span>}
                 </div>
               </div>
-            )) : <p className="text-gray" style={{ textAlign: 'center', marginTop: '2rem' }}>No bridges found.</p>}
+            )) : <p className="text-gray" style={{ textAlign: 'center', marginTop: '2rem' }}>No locations found.</p>}
           </div>
         </div>
 
@@ -186,20 +208,39 @@ export default function Home() {
             <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <FlyTo coords={flyCoords} />
             <HeatmapLayer bridges={bridges} active={heatmapMode} />
-            {!heatmapMode && filtered.map(b => (
-              <Marker key={b.id} position={[b.lat, b.lng]} icon={createMarkerIcon(b.status, b.risk_score)}>
-                <Popup>
-                  <div style={{ padding: '0.5rem', minWidth: '220px' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#111' }}>{b.name}</h3>
-                    <p style={{ margin: '0 0 0.5rem 0', color: '#555', fontSize: '0.9rem' }}>{b.district}, {b.state}</p>
-                    <p style={{ margin: '0 0 0.25rem 0' }}><strong>Status:</strong> <span style={{ color: borderColor[b.status], fontWeight: 'bold' }}>{b.status}</span></p>
-                    <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: '#666' }}>🏗️ Seismic Zone {b.seismic_zone || 'N/A'}</p>
-                    <WeatherBadge lat={b.lat} lng={b.lng} />
-                    <button onClick={() => router.push(`/bridge/${b.id}`)} style={{ width: '100%', padding: '0.4rem', marginTop: '0.5rem' }} className="btn-primary">View Details</button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {!heatmapMode && FLAGS.ENABLE_CITY_PULSE ? (
+              <MarkerClusterGroup chunkedLoading>
+                {filtered.map(b => (
+                  <Marker key={b.id} position={[b.lat, b.lng]} icon={createMarkerIcon(b.status, b.risk_score)}>
+                    <Popup>
+                      <div style={{ padding: '0.5rem', minWidth: '220px' }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#111' }}>{b.name}</h3>
+                        <p style={{ margin: '0 0 0.5rem 0', color: '#555', fontSize: '0.9rem' }}>{b.district}, {b.state}</p>
+                        <p style={{ margin: '0 0 0.25rem 0' }}><strong>Status:</strong> <span style={{ color: borderColor[b.status], fontWeight: 'bold' }}>{b.status}</span></p>
+                        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: '#666' }}>🏗️ Seismic Zone {b.seismic_zone || 'N/A'}</p>
+                        <WeatherBadge lat={b.lat} lng={b.lng} />
+                        <button onClick={() => router.push(`/bridge/${b.id}`)} style={{ width: '100%', padding: '0.4rem', marginTop: '0.5rem' }} className="btn-primary">View Details</button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MarkerClusterGroup>
+            ) : !heatmapMode && (
+              filtered.map(b => (
+                <Marker key={b.id} position={[b.lat, b.lng]} icon={createMarkerIcon(b.status, b.risk_score)}>
+                  <Popup>
+                    <div style={{ padding: '0.5rem', minWidth: '220px' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0', color: '#111' }}>{b.name}</h3>
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#555', fontSize: '0.9rem' }}>{b.district}, {b.state}</p>
+                      <p style={{ margin: '0 0 0.25rem 0' }}><strong>Status:</strong> <span style={{ color: borderColor[b.status], fontWeight: 'bold' }}>{b.status}</span></p>
+                      <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: '#666' }}>🏗️ Seismic Zone {b.seismic_zone || 'N/A'}</p>
+                      <WeatherBadge lat={b.lat} lng={b.lng} />
+                      <button onClick={() => router.push(`/bridge/${b.id}`)} style={{ width: '100%', padding: '0.4rem', marginTop: '0.5rem' }} className="btn-primary">View Details</button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))
+            )}
           </MapContainer>
         </div>
       </div>

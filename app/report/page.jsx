@@ -1,6 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
-const ReportBridge = dynamic(() => import('@/views/ReportBridge'), { ssr: false });
+const ReportIssue = dynamic(() => import('@/views/ReportIssue'), { ssr: false });
 export default function ReportPage() {
-  return <ReportBridge />;
+  return <ReportIssue />;
 }

@@ -14,6 +14,7 @@ import { exportToCSV, exportToPDF, getReportStats } from '../../lib/exportReport
 import InspectionScheduler from '../../components/InspectionScheduler'
 import { getActiveEngineers } from '../../lib/engineers'
 import { createTask } from '../../lib/tasks'
+import { FLAGS } from '../../lib/features'
 
 const BridgeSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
@@ -44,15 +45,15 @@ function AddBridgeForm({ onSuccess, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'left' }}>
-      <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.2rem' }}>➕ Add New Bridge</h3>
+      <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.2rem' }}>➕ Add New Location</h3>
       <div className="grid-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Bridge Name</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Location Name</label>
           <input className="form-input" style={{ margin: 0 }} {...register('name')} />
           {errors.name && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.name.message}</span>}
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Bridge Type</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Structure Type</label>
           <input className="form-input" style={{ margin: 0 }} {...register('bridge_type')} placeholder="e.g. Concrete, Steel" />
         </div>
         <div>
@@ -90,7 +91,7 @@ function AddBridgeForm({ onSuccess, onCancel }) {
         </div>
       </div>
       <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-        <button type="submit" className="btn-primary" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Bridge'}</button>
+        <button type="submit" className="btn-primary" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Location'}</button>
         <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
       </div>
     </form>
@@ -300,7 +301,7 @@ export default function AdminDashboard() {
           const { data: bridgeData } = await supabase.from('bridges').select('id, name, state').in('id', bridgeIds)
           const bridgeMap = Object.fromEntries((bridgeData || []).map(b => [b.id, b]))
           
-          setPendingReports(data.map(r => ({ ...r, bridgeName: bridgeMap[r.bridge_id]?.name || 'Unknown Bridge' })))
+          setPendingReports(data.map(r => ({ ...r, bridgeName: bridgeMap[r.bridge_id]?.name || 'Unknown Location' })))
         } catch (err) {
           console.error(err)
         } finally {
@@ -330,7 +331,7 @@ export default function AdminDashboard() {
 
   async function handleLogout() {
     await signOut()
-    navigate('/admin/login')
+    router.push('/admin/login')
   }
 
   if (authLoading || bridgesLoading || reportsLoading) {
@@ -344,7 +345,10 @@ export default function AdminDashboard() {
         <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>🌉 Authority Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <span className="text-gray">{String(authority?.name || 'Admin')} · {String(authority?.role || '')}</span>
-          <button className="btn-primary" onClick={() => navigate('/admin/analytics')} style={{ background: 'rgba(255,255,255,0.1)' }}>📊 Analytics</button>
+          {FLAGS.ENABLE_MASTER_TICKETS && (
+            <button className="btn-primary" onClick={() => router.push('/admin/master-tickets')} style={{ background: 'rgba(139,92,246,0.2)', color: '#c4b5fd' }}>🧠 Master Tickets</button>
+          )}
+          <button className="btn-primary" onClick={() => router.push('/admin/analytics')} style={{ background: 'rgba(255,255,255,0.1)' }}>📊 Analytics</button>
           <button className="btn-primary" onClick={handleExportCSV} style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399' }}>📥 CSV</button>
           <button className="btn-primary" onClick={handleExportPDF} style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa' }}>📄 PDF</button>
           <button className="btn-primary" onClick={handleLogout}>Logout</button>
@@ -354,7 +358,7 @@ export default function AdminDashboard() {
       <div className="grid-4" style={{ marginBottom: '3rem' }}>
         <div className="card-dark">
           <div className="stat-number">{bridges.length}</div>
-          <div className="stat-title text-gray">Total Bridges</div>
+          <div className="stat-title text-gray">Total Locations</div>
         </div>
         <div className="card-red">
           <div className="stat-number text-red">{bridges.filter(b => b.status === 'CRITICAL').length}</div>
@@ -374,7 +378,7 @@ export default function AdminDashboard() {
         <AddBridgeForm onSuccess={() => { setAddBridgeOpen(false); refetchBridges() }} onCancel={() => setAddBridgeOpen(false)} />
       ) : (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-          <button className="btn-secondary" onClick={() => setAddBridgeOpen(true)}>➕ Add New Bridge</button>
+          <button className="btn-secondary" onClick={() => setAddBridgeOpen(true)}>➕ Add New Location</button>
         </div>
       )}
 
@@ -390,10 +394,10 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ textAlign: 'left' }}>
-        <div className="section-title">All Bridges — Risk Ranked</div>
+        <div className="section-title">All Locations — Risk Ranked</div>
         <div className="grid-3">
           {bridges.map(b => (
-            <Link key={b.id} to={`/bridge/${b.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link key={b.id} href={`/bridge/${b.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="card-dark" style={{ borderLeft: `4px solid var(--color-${b.status.toLowerCase()})`, transition: '0.2s', cursor: 'pointer' }}>
                 <div className="flex-between">
                   <span className={`badge status-${b.status.toLowerCase()}`}>{b.status}</span>

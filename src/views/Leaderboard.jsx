@@ -50,7 +50,7 @@ export default function Leaderboard() {
           🏆 Authority Leaderboard
         </h1>
         <p className="text-gray" style={{ fontSize: '1.1rem', maxWidth: 600, margin: '0 auto' }}>
-          Government authorities ranked by their responsiveness to citizen bridge safety reports.
+          Government authorities ranked by their responsiveness to citizen safety reports.
           Higher scores = faster action, fewer ignored reports.
         </p>
       </div>

@@ -64,7 +64,7 @@ export function SkeletonCircle({ size = '40px', style = {} }) {
   );
 }
 
-export function SkeletonBridgeCard() {
+export function SkeletonLocationCard() {
   return (
     <div style={{ padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
       <SkeletonText lines={2} width={['60%', '40%']} height='0.9rem' />
@@ -94,7 +94,7 @@ export function SkeletonList({ count = 5, renderItem }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i}>{renderItem ? renderItem(i) : <SkeletonBridgeCard />}</div>
+        <div key={i}>{renderItem ? renderItem(i) : <SkeletonLocationCard />}</div>
       ))}
     </div>
   );

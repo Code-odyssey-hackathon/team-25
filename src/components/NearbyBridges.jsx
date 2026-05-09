@@ -1,7 +1,7 @@
 /**
- * JanaVaani — Nearby Bridges Component
+ * JanaVaani — Nearby Locations Component
  * 
- * Shows bridges near the user's current GPS location.
+ * Shows locations near the user's current GPS location.
  */
 import { useRouter } from 'next/navigation';
 import { useNearbyBridges } from '../hooks/useNearbyBridges';
@@ -85,7 +85,7 @@ export default function NearbyBridges({ bridges }) {
           </>
         ) : (
           <>
-            📍 Find Bridges Near Me
+            📍 Find Locations Near Me
           </>
         )}
       </button>

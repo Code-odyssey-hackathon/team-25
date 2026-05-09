@@ -104,7 +104,7 @@ export default function Analytics() {
       <div className="grid-4" style={{ marginBottom: '3rem' }}>
         <div className="card-dark">
           <div className="stat-number" style={{ fontSize: '3.5rem' }}>{totalBridges}</div>
-          <div className="stat-title text-gray">Total Bridges</div>
+          <div className="stat-title text-gray">Total Locations</div>
         </div>
         <div className="card-dark">
           <div className="stat-number text-orange" style={{ fontSize: '3.5rem' }}>{totalReports}</div>
@@ -112,7 +112,7 @@ export default function Analytics() {
         </div>
         <div className="card-red">
           <div className="stat-number text-red" style={{ fontSize: '3.5rem' }}>{criticalCount}</div>
-          <div className="stat-title text-red">Critical Bridges</div>
+          <div className="stat-title text-red">Critical Locations</div>
         </div>
         <div className="card-dark">
           <div className="stat-number text-green" style={{ fontSize: '3.5rem' }}>{avgResponseDays}d</div>

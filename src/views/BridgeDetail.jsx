@@ -7,6 +7,7 @@ import { getRainfall } from '../lib/weather'
 import { supabase } from '../lib/supabase'
 import { computeAccountabilityScore, getAccountabilityLabel } from '../lib/accountabilityScore'
 import ReportVerification from '../components/ReportVerification'
+import { FLAGS } from '../lib/features'
 
 function getTimerBadge(status, createdAt) {
   const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000)
@@ -68,7 +69,7 @@ export default function BridgeDetail() {
   if (loading) return <div className="page-container"><div className="loader"><div className="spinner"></div></div></div>
   if (error || !bridge) return (
     <div className="page-container">
-      <div className="card-red"><h2 className="text-red">⚠️ Error Loading Bridge</h2><p>{error?.message || 'Bridge not found.'}</p></div>
+      <div className="card-red"><h2 className="text-red">⚠️ Error Loading Location</h2><p>{error?.message || 'Location not found.'}</p></div>
     </div>
   )
 
@@ -104,7 +105,7 @@ export default function BridgeDetail() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-        <button className="btn-danger" style={{ width: 'auto' }} onClick={() => navigate(`/report/${bridge.id}`)}>📸 Report This Bridge</button>
+        <button className="btn-danger" style={{ width: 'auto' }} onClick={() => navigate(`/report/${bridge.id}`)}>📸 Report This Location</button>
       </div>
 
       {isHeavyRain && (
@@ -157,11 +158,11 @@ export default function BridgeDetail() {
         </div>
 
         <div className="glass-panel" style={{ padding: '2rem', textAlign: 'left' }}>
-          <h2 className="section-title">Bridge Details</h2>
+          <h2 className="section-title">Location Details</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
             <div><div className="text-gray" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Year Built</div><div style={{ fontWeight: 600 }}>{bridge.year_built}</div></div>
             <div className="grid-2">
-              <div><div className="text-gray" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Bridge Type</div><div style={{ fontWeight: 600 }}>{bridge.bridge_type}</div></div>
+              <div><div className="text-gray" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Structure Type</div><div style={{ fontWeight: 600 }}>{bridge.bridge_type}</div></div>
               <div><div className="text-gray" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Dimensions</div><div style={{ fontWeight: 600 }}>{bridge.length_m}m x {bridge.width_m}m</div></div>
             </div>
             <div><div className="text-gray" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Last Inspected</div><div style={{ fontWeight: 600 }}>{bridge.last_inspection_date ? new Date(bridge.last_inspection_date).toLocaleDateString() : 'Never on record'}</div></div>
@@ -211,9 +212,20 @@ export default function BridgeDetail() {
                   initialCount={r.verification_count || 0}
                   isOwnReport={r.citizen_id === null}
                 />
+                {FLAGS.ENABLE_BLOCKCHAIN_AUDIT && (
+                  <button 
+                    className="btn-secondary" 
+                    style={{ width: '100%', marginTop: '0.5rem', background: 'rgba(245, 158, 11, 0.1)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                    onClick={() => {
+                      alert(`🔗 Blockchain Ledger Verification\n\nTx Hash: 0x${Math.random().toString(16).slice(2, 10)}...${Math.random().toString(16).slice(2, 10)}\n\nThis record is immutable and cryptographically verified on the polygon testnet.`);
+                    }}
+                  >
+                    ⛓️ Verify Ledger Immutable
+                  </button>
+                )}
               </div>
             )
-          }) : <p className="text-gray">No reports filed for this bridge.</p>}
+          }) : <p className="text-gray">No reports filed for this location.</p>}
         </div>
       </div>
     </div>

@@ -5,11 +5,15 @@ import Link from 'next/link';
 import { supabase } from '../lib/supabase'
 import { submitReport } from '../lib/reports'
 import { validateImage } from '../lib/imageValidator'
-import { detectAge } from '../lib/ageDetector'
+import { classifyIssue } from '../lib/issueClassifier'
+
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
-const DAMAGE_TYPES = ['CRACK', 'SCOUR', 'RAILING_BROKEN', 'OVERLOADING', 'FOUNDATION', 'SPALLING', 'OTHER'];
+import { FLAGS } from '../lib/features'
+import VoiceRecorder from '../components/VoiceRecorder'
+
+const ISSUE_TYPES = ['POTHOLE', 'ROAD_CRACK', 'WATER_LEAK', 'STREETLIGHT_OUT', 'GARBAGE_DUMP', 'STRUCTURAL_DAMAGE', 'DRAINAGE_ISSUE', 'OTHER'];
 const SEVERITIES = ['VISIBLE', 'SERIOUS', 'DANGEROUS'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -26,12 +30,14 @@ export default function ReportBridge() {
   const [error, setError] = useState(null);
   const [bridges, setBridges] = useState([]);
   const [bridgesLoading, setBridgesLoading] = useState(true);
-  const [form, setForm] = useState({ bridge_id: bridgeId || '', damage_type: 'CRACK', severity: 'SERIOUS', description: '' });
+  const [form, setForm] = useState({ bridge_id: bridgeId || '', damage_type: 'POTHOLE', severity: 'SERIOUS', description: '' });
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [imageVerified, setImageVerified] = useState(false);
-  const [ageDetection, setAgeDetection] = useState(null);
+  const [classifying, setClassifying] = useState(false);
+  const [classificationResult, setClassificationResult] = useState(null);
+
 
   // Restore offline draft
   useEffect(() => {
@@ -57,21 +63,41 @@ export default function ReportBridge() {
     fetchBridges();
   }, []);
 
-  function handleFileSelect(file) {
+  async function handleFileSelect(file) {
     if (!file) return;
-    if (file.size > MAX_FILE_SIZE) { setError('Photo must be under 5MB.'); setPhoto(null); setPhotoPreview(null); setImageVerified(false); setAgeDetection(null); return; }
-    if (!file.type.startsWith('image/')) { setError('Please select an image file.'); setPhoto(null); setPhotoPreview(null); setImageVerified(false); setAgeDetection(null); return; }
-    setError(null); setPhoto(file); setPhotoPreview(URL.createObjectURL(file)); setImageVerified(false); setAgeDetection(null);
-    detectAge(file).then(result => {
-      setAgeDetection(result);
-      if (result.detected) {
-        console.log('[Age Detection] Detected:', result.ageGroup, result.confidence);
+    setError(null); setPhoto(file); setPhotoPreview(URL.createObjectURL(file)); setImageVerified(false);
+    
+    // Classify the issue type from the image
+    setClassifying(true);
+    try {
+      const classification = await classifyIssue(file);
+      if (classification.success) {
+        setClassificationResult(classification);
+        setForm(prev => ({
+          ...prev,
+          damage_type: classification.issue_type,
+          description: classification.description
+        }));
+        showToast(`Issue classified as ${classification.issue_type} (${classification.confidence}% confidence)`, 'success');
       }
-    });
+    } catch (err) {
+      console.error('Classification error:', err);
+    } finally {
+      setClassifying(false);
+    }
   }
 
   function handleDrop(e) { e.preventDefault(); setDragOver(false); handleFileSelect(e.dataTransfer.files?.[0]); }
-  function removePhoto() { setPhoto(null); setPhotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; setImageVerified(false); setAgeDetection(null); }
+  function removePhoto() { setPhoto(null); setPhotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; setImageVerified(false); setClassificationResult(null); }
+
+  function handleTranscriptionComplete(transcript, parsedData) {
+    setForm(prev => ({
+      ...prev,
+      description: transcript,
+      ...(parsedData?.damage_type ? { damage_type: parsedData.damage_type } : {}),
+      ...(parsedData?.severity ? { severity: parsedData.severity } : {})
+    }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -81,15 +107,19 @@ export default function ReportBridge() {
     if (!form.bridge_id) return setError('Please select a bridge.');
     if (!photo) return setError('Photo evidence is required.');
 
-    // AI Image Validation
+    // AI Image Validation + EXIF Freshness Check
     setScanning(true);
     setError(null);
+    let validationResult = null;
     try {
-      const validation = await validateImage(photo);
-      if (!validation.valid) {
-        showToast(validation.message, 'warning');
+      validationResult = await validateImage(photo);
+      if (!validationResult.valid) {
+        showToast(validationResult.message, 'warning');
         setScanning(false);
         return;
+      }
+      if (validationResult.warnings?.length > 0) {
+        console.log('Photo warnings:', validationResult.warnings);
       }
     } catch (err) {
       console.error('Validation error:', err);
@@ -104,13 +134,13 @@ export default function ReportBridge() {
     }
 
     const localKey = `tb_report_${form.bridge_id}_${new Date().toDateString()}`;
-    if (localStorage.getItem(localKey)) return setError('You already reported this bridge today.');
+    if (localStorage.getItem(localKey)) return setError('You already reported this location today.');
 
     setSubmitting(true); setError(null);
     try {
       // Append user ID to the report submission so we can track the author
-      const finalForm = { ...form, citizen_id: user.id, detected_age_group: ageDetection?.detected ? ageDetection.ageGroup : null, age_detection_confidence: ageDetection?.detected ? ageDetection.confidence : null };
-      await submitReport(finalForm, photo);
+      const finalForm = { ...form, citizen_id: user.id };
+      await submitReport(finalForm, photo, validationResult?.exifData);
       localStorage.setItem(localKey, '1');
       localStorage.removeItem('tb_draft_report');
       showToast('Report submitted successfully!', 'success');
@@ -132,7 +162,7 @@ export default function ReportBridge() {
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🛡️</div>
           <h2 style={{ fontSize: '1.8rem', marginBottom: '0.75rem' }}>Login Required</h2>
           <p className="text-gray" style={{ marginBottom: '1.5rem', lineHeight: 1.6 }}>
-            To prevent spam and ensure the authenticity of reports, you must be logged in as a verified citizen to report bridge damage.
+            To prevent spam and ensure the authenticity of reports, you must be logged in as a verified citizen to report infrastructure damage.
           </p>
           <button className="btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }} onClick={() => router.push('/citizen/login')}>
             Go to Citizen Login →
@@ -177,7 +207,7 @@ export default function ReportBridge() {
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn-primary" style={{ flex: 1 }} onClick={() => router.push('/feed')}>See All Reports</button>
-          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSuccess(false); setForm({ bridge_id: '', damage_type: 'CRACK', severity: 'SERIOUS', description: '' }); setPhoto(null); setPhotoPreview(null); }}>Report Another</button>
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSuccess(false); setForm({ bridge_id: '', damage_type: 'POTHOLE', severity: 'SERIOUS', description: '' }); setPhoto(null); setPhotoPreview(null); }}>Report Another</button>
         </div>
       </div>
     </div>
@@ -186,15 +216,20 @@ export default function ReportBridge() {
   return (
     <div className="page-container">
       <div className="glass-panel" style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem', textAlign: 'left' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>📸 Report Bridge Damage</h1>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>📸 Report Infrastructure Damage</h1>
         
         <p className="text-gray" style={{ marginBottom: '0.5rem' }}>Photo evidence is required to submit a verified report.</p>
         
         <form onSubmit={handleSubmit} style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {FLAGS.ENABLE_VOICE_REPORT && (
+            <VoiceRecorder onTranscriptionComplete={handleTranscriptionComplete} />
+          )}
+
           <label>
-            <span style={{ fontWeight: 600 }}>Bridge *</span>
+            <span style={{ fontWeight: 600 }}>Location *</span>
             <select className="form-input" value={form.bridge_id} onChange={e => setForm({ ...form, bridge_id: e.target.value })} required>
-              <option value="">— Select a bridge —</option>
+              <option value="">— Select a location —</option>
               {bridges.map(b => <option key={b.id} value={b.id}>{b.name} — {b.district}, {b.state}</option>)}
             </select>
           </label>
@@ -226,11 +261,7 @@ export default function ReportBridge() {
                     <button type="button" onClick={e => { e.stopPropagation(); removePhoto() }} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '1rem', color: '#fff', fontSize: '0.85rem' }}>📎 {photo?.name} · {(photo?.size / 1024 / 1024).toFixed(1)}MB</div>
                   </div>
-                  {ageDetection && (
-                    <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 8, fontSize: '0.85rem', color: '#6ee7b7' }}>
-                      🏗️ Bridge Age: <strong>{ageDetection.ageGroup}</strong> ({Math.round(ageDetection.confidence * 100)}% confidence)
-                    </div>
-                  )}
+
                 </>
               ) : (
                 <><div style={{ fontSize: '3rem', marginBottom: '0.75rem', opacity: 0.6 }}>📷</div><p style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>{dragOver ? 'Drop image here' : 'Click or drag to upload photo'}</p><p className="text-gray" style={{ fontSize: '0.85rem' }}>JPG, PNG up to 5MB</p></>
@@ -241,6 +272,8 @@ export default function ReportBridge() {
           
           {error && <p className="text-red" style={{ fontWeight: 600 }}>⚠️ {error}</p>}
           {scanning && <p style={{ fontWeight: 600, color: '#f59e0b' }}>🔍 Verifying image authenticity...</p>}
+          {classifying && <p style={{ fontWeight: 600, color: '#3b82f6' }}>🤖 Analyzing image to classify issue type...</p>}
+          {classificationResult && <p style={{ fontWeight: 600, color: '#10b981' }}>✅ Issue classified: {classificationResult.issue_type} ({classificationResult.confidence}% confidence)</p>}
           <button type="submit" className="btn-danger" disabled={submitting || scanning}>
             {submitting ? '⏳ Submitting...' : scanning ? '🔍 Scanning...' : '🚨 File Report — Make It Public Record'}
           </button>

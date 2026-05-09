@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getTruthCounter } from '../lib/truthCounter'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { FLAGS } from '../lib/features'
+import PredictiveChart from '../components/PredictiveChart'
 
 function useCountUp(target, duration = 2000) {
   const [count, setCount] = useState(0);
@@ -27,6 +30,7 @@ export default function TruthDashboard() {
     officialSource: 'MoRTH Parliamentary Response 2024',
     realitySource: 'Newslaundry Media Analysis July 2025'
   });
+  const [chartData, setChartData] = useState([]);
   const gap = counter.realityCollapses - counter.officialCollapses;
   const [days, setDays] = useState(0);
 
@@ -67,7 +71,7 @@ export default function TruthDashboard() {
   return (
     <div className="page-container">
       <div className="banner-header">
-        GOVERNMENT VS REALITY — INDIA'S HIDDEN BRIDGE CRISIS
+        GOVERNMENT VS REALITY — INDIA'S HIDDEN INFRASTRUCTURE CRISIS
       </div>
 
       <div className="grid-3" style={{ marginBottom: '3rem' }}>
@@ -93,8 +97,42 @@ export default function TruthDashboard() {
         </div>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div className="glass-panel" style={{ padding: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 600 }}>Weekly Resolution Trends</h3>
+          <div style={{ height: 300, width: '100%' }}>
+            <ResponsiveContainer>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRes" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }} />
+                <Area type="monotone" dataKey="resolved" stroke="#10b981" fillOpacity={1} fill="url(#colorRes)" strokeWidth={2} name="Resolved" />
+                <Area type="monotone" dataKey="new" stroke="#f59e0b" fillOpacity={1} fill="url(#colorNew)" strokeWidth={2} name="New Reports" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        {FLAGS.ENABLE_PREDICTIVE_INFRA && (
+           <div className="glass-panel" style={{ padding: '1.5rem' }}>
+             <PredictiveChart />
+           </div>
+        )}
+      </div>
+
       <div className="ticking-counter">
-        <div className="ticking-text">Days since Gambhira Bridge collapse:</div>
+        <div className="ticking-text">Days since major infrastructure collapse:</div>
         <div className="ticking-number">{days}</div>
         <div className="ticking-sub">22 people died. Locals warned for months. No system existed to hear them.</div>
       </div>
@@ -102,7 +140,7 @@ export default function TruthDashboard() {
       <div className="glass-panel" style={{ padding: '2rem', marginTop: '2rem', textAlign: 'left' }}>
         <div className="section-title">How We Count</div>
         <p className="text-gray" style={{ marginBottom: '1rem' }}>
-          The government officially acknowledges only a fraction of bridge failures, often classifying them under vague categories like "structural wear" or completely omitting rural bridge collapses from federal databases.
+          The government officially acknowledges only a fraction of infrastructure failures, often classifying them under vague categories like "structural wear" or completely omitting rural failures from federal databases.
         </p>
         <p className="text-gray" style={{ marginBottom: '1rem' }}>
           <strong>Ground Reality</strong> is calculated by continuously parsing regional news reports, citizen journalism, and local authority notices. We verify these incidents using photo evidence and geolocation.

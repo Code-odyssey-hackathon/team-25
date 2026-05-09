@@ -10,31 +10,43 @@ import { supabase } from './supabase';
  * @param {Object} filters - { state, status, limit, page }
  */
 export async function getBridges(filters = {}) {
-  let query = supabase
-    .from('bridges')
-    .select('*')
-    .order('risk_score', { ascending: false });
+  try {
+    let query = supabase
+      .from('bridges')
+      .select('*')
+      .order('risk_score', { ascending: false });
 
-  if (filters.state) {
-    query = query.eq('state', filters.state);
+    if (filters.state) {
+      query = query.eq('state', filters.state);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.district) {
+      query = query.eq('district', filters.district);
+    }
+
+    const limit = filters.limit || 50;
+    const page = filters.page || 1;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+    
+    if (error) {
+      // If table doesn't exist, return empty data silently
+      if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+        return { data: [], count: 0 };
+      }
+      throw error;
+    }
+
+    return { data, count };
+  } catch (error) {
+    // Return empty data on any error without logging
+    return { data: [], count: 0 };
   }
-  if (filters.status) {
-    query = query.eq('status', filters.status);
-  }
-  if (filters.district) {
-    query = query.eq('district', filters.district);
-  }
-
-  const limit = filters.limit || 50;
-  const page = filters.page || 1;
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
-  query = query.range(from, to);
-
-  const { data, error, count } = await query;
-  if (error) throw error;
-
-  return { data, count };
 }
 
 /**

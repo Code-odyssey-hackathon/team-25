@@ -10,7 +10,23 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(cache => cache.addAll(PRECACHE_ASSETS))
+      .then(cache => {
+        // Cache each asset individually to avoid one failure blocking all
+        return Promise.allSettled(
+          PRECACHE_ASSETS.map(asset =>
+            fetch(asset).then(response => {
+              if (response.ok) {
+                return cache.put(asset, response);
+              }
+              console.warn(`SW precache: Failed to fetch ${asset}`);
+              return Promise.resolve();
+            }).catch(err => {
+              console.warn(`SW precache: Error fetching ${asset}:`, err);
+              return Promise.resolve();
+            })
+          )
+        );
+      })
       .catch(err => console.warn('SW precache failed:', err))
   );
   self.skipWaiting();

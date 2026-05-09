@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { signOut } from '../../lib/auth';
+import { FLAGS } from '../../lib/features';
 
 export default function CitizenProfile() {
   const router = useRouter();
@@ -19,8 +20,8 @@ export default function CitizenProfile() {
 
   // Redirect admins to their own profile
   useEffect(() => {
-    if (!authLoading && isAdmin) navigate('/admin/profile');
-  }, [authLoading, isAdmin, navigate]);
+    if (!authLoading && isAdmin) router.push('/admin/dashboard');
+  }, [authLoading, isAdmin, router]);
 
   // Fetch this citizen's reports
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function CitizenProfile() {
   );
 
   if (!user) {
-    navigate('/citizen/login');
+    router.push('/citizen/login');
     return null;
   }
 
@@ -159,14 +160,16 @@ export default function CitizenProfile() {
           <div className="card-dark" style={{ position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)' }} />
             <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#a78bfa' }}>{impactScore}</div>
-            <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Impact Score</div>
+            <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+              {FLAGS.ENABLE_REWARD_SYSTEM ? 'Civic Trust Score' : 'Impact Score'}
+            </div>
           </div>
         </div>
 
         {/* ─── Impact Progress Bar ─── */}
         <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '1rem' }}>🏆 Citizen Impact</span>
+            <span style={{ fontWeight: 700, fontSize: '1rem' }}>🏆 {FLAGS.ENABLE_REWARD_SYSTEM ? 'Civic Trust Score' : 'Citizen Impact'}</span>
             <span style={{ fontWeight: 700, color: '#a78bfa' }}>{impactScore}/100</span>
           </div>
           <div className="progress-container">
@@ -178,13 +181,18 @@ export default function CitizenProfile() {
               : impactScore >= 20 ? '📸 Getting Started — Submit more verified reports to grow your score.'
               : '🌱 New Citizen — Submit your first report to start making an impact!'}
           </p>
+          {FLAGS.ENABLE_REWARD_SYSTEM && impactScore >= 50 && (
+            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '8px', color: '#34d399', fontSize: '0.85rem' }}>
+              🎁 Reward Unlocked: You are eligible for the Civic Champion badge and priority report queueing!
+            </div>
+          )}
         </div>
 
         {/* ─── Report History ─── */}
         <div style={{ textAlign: 'left' }}>
           <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>📋 My Report History</span>
-            <button className="btn-primary" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }} onClick={() => navigate('/report')}>
+            <button className="btn-primary" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }} onClick={() => router.push('/report')}>
               + New Report
             </button>
           </div>
@@ -197,8 +205,8 @@ export default function CitizenProfile() {
             <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>📭</div>
               <h3 style={{ marginBottom: '0.5rem' }}>No Reports Yet</h3>
-              <p className="text-gray" style={{ marginBottom: '1.5rem' }}>You haven't submitted any bridge damage reports. Be the first to make a difference!</p>
-              <button className="btn-primary" onClick={() => navigate('/report')}>📸 Report Bridge Damage</button>
+              <p className="text-gray" style={{ marginBottom: '1.5rem' }}>You haven't submitted any civic issue reports. Be the first to make a difference!</p>
+              <button className="btn-primary" onClick={() => router.push('/report')}>📸 Report Civic Issue</button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -218,7 +226,7 @@ export default function CitizenProfile() {
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <div>
-                          <strong style={{ fontSize: '1.05rem' }}>{String(bridge.name || r.bridge_name || 'Unknown Bridge')}</strong>
+                          <strong style={{ fontSize: '1.05rem' }}>{String(bridge.name || r.bridge_name || 'Unknown Location')}</strong>
                           <p className="text-gray" style={{ fontSize: '0.8rem', marginTop: '0.15rem' }}>
                             {bridge.district && typeof bridge.district === 'string' ? `${bridge.district}, ${bridge.state || ''}` : ''} · {String(date)}
                           </p>

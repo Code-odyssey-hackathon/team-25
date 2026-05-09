@@ -126,7 +126,7 @@ export function exportToPDF(reports, bridges, stats, filename = 'bridge-reports'
   <table>
     <thead>
       <tr>
-        <th>Bridge</th>
+        <th>Location</th>
         <th>Location</th>
         <th>Damage Type</th>
         <th>Severity</th>
@@ -155,7 +155,7 @@ export function exportToPDF(reports, bridges, stats, filename = 'bridge-reports'
   </table>
 
   <footer>
-    <p>Exported from JanaVaani — India's Bridge Safety Accountability Platform</p>
+    <p>Exported from JanaVaani — India's Infrastructure Safety Accountability Platform</p>
     <p>https://JanaVaani-six.vercel.app</p>
   </footer>
 

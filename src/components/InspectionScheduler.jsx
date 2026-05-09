@@ -185,7 +185,7 @@ export default function InspectionScheduler({ bridges }) {
                 }}
                 required
               >
-                <option value="">Select bridge...</option>
+                <option value="">Select location...</option>
                 {bridges.map(b => (
                   <option key={b.id} value={b.id}>{b.name} ({b.district})</option>
                 ))}

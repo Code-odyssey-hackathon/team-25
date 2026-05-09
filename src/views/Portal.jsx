@@ -33,7 +33,7 @@ export default function Portal() {
         }}>JanaVaani</h1>
         
         <p className="text-gray" style={{ fontSize: '1.2rem', marginBottom: '4rem', maxWidth: '600px', margin: '0 auto 4rem auto' }}>
-          India's independent, citizen-driven bridge safety and accountability network.
+          India's independent, citizen-driven civic safety and accountability network.
           Select your portal to continue.
         </p>
 
@@ -62,7 +62,7 @@ export default function Portal() {
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👁️</div>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Citizen Access</h2>
             <p className="text-gray" style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              View live bridge map, check risk scores, or report dangerous infrastructure anonymously.
+              View live map, check risk scores, or report dangerous infrastructure anonymously.
             </p>
             <button className="btn-primary" style={{ width: '100%', background: 'rgba(255,255,255,0.1)', color: 'white' }}>
               Enter Public Portal →
@@ -109,7 +109,7 @@ export default function Portal() {
               border: '1px solid rgba(34,197,94,0.2)',
               background: 'linear-gradient(180deg, rgba(10,40,20,0.4) 0%, rgba(0,0,0,0) 100%)'
             }}
-            onClick={() => navigate('/engineer/login')}
+            onClick={() => router.push('/engineer/login')}
             onMouseEnter={e => {
               e.currentTarget.style.transform = 'translateY(-5px)';
               e.currentTarget.style.borderColor = 'rgba(34,197,94,0.5)';
