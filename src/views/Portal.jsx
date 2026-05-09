@@ -21,7 +21,7 @@ export default function Portal() {
         boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)'
       }}>
         
-        <div style={{ fontSize: '4rem', marginBottom: '1rem', textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>🌉</div>
+        <div style={{ fontSize: '4rem', marginBottom: '1rem', textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>📋</div>
         <h1 style={{
           fontSize: '3.5rem',
           fontWeight: 900,
@@ -62,7 +62,7 @@ export default function Portal() {
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👁️</div>
             <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Citizen Access</h2>
             <p className="text-gray" style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              View live map, check risk scores, or report dangerous infrastructure anonymously.
+              View live map, check issues, or report dangerous infrastructure anonymously.
             </p>
             <button className="btn-primary" style={{ width: '100%', background: 'rgba(255,255,255,0.1)', color: 'white' }}>
               Enter Public Portal →

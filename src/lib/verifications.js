@@ -38,17 +38,15 @@ export async function getVerificationStatus(reportId, citizenId) {
 /**
  * Verify a report (confirm the issue exists)
  */
-export async function verifyReport(reportId, bridgeId, citizenId, notes = '') {
+export async function verifyReport(reportId, citizenId, notes = '') {
   if (!citizenId) throw new Error('You must be logged in to verify reports');
   if (!reportId) throw new Error('Report ID is required');
-  if (!bridgeId) throw new Error('Bridge ID is required');
 
   const { data, error } = await supabase
     .from('report_verifications')
     .insert({
       report_id: reportId,
       citizen_id: citizenId,
-      bridge_id: bridgeId,
       notes: notes || null,
     })
     .select()

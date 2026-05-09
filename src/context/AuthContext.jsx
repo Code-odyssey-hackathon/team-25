@@ -39,7 +39,9 @@ export function AuthProvider({ children }) {
       if (err?.message?.includes('Lock')) {
         console.warn('Auth profile fetch deferred due to lock contention');
       } else {
-        console.error('Profile fetch error:', err);
+        console.error('❌ Profile fetch error:', err);
+        // Log more details if it's a fetch error
+        if (err instanceof TypeError) console.error('Fetch error type:', err.message);
       }
     } finally {
       fetchInProgress.current = false;

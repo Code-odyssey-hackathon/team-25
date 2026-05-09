@@ -17,7 +17,7 @@ const DAMAGE_TYPES = ['POTHOLE', 'ROAD_CRACK', 'WATER_LEAK', 'STREETLIGHT_OUT', 
 const SEVERITIES = ['VISIBLE', 'SERIOUS', 'DANGEROUS'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-export default function ReportBridge() {
+export default function ReportIssue() {
   const { bridgeId } = useParams();
   const router = useRouter();
   const { user, loading: authLoading, isVerified } = useAuth();
@@ -28,9 +28,16 @@ export default function ReportBridge() {
   const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
-  const [bridges, setBridges] = useState([]);
-  const [bridgesLoading, setBridgesLoading] = useState(true);
-  const [form, setForm] = useState({ bridge_id: bridgeId || '', issue_type: 'POTHOLE', severity: 'SERIOUS', description: '' });
+  const [form, setForm] = useState({ 
+    location_name: '', 
+    city: '', 
+    state: 'Karnataka', 
+    issue_type: 'POTHOLE', 
+    severity: 'SERIOUS', 
+    description: '',
+    lat: null,
+    lng: null
+  });
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -51,17 +58,15 @@ export default function ReportBridge() {
     }
   }, [showToast]);
 
-  useEffect(() => {
-    async function fetchBridges() {
-      try {
-        const { data, error: fetchError } = await supabase.from('bridges').select('id,name,district,state').order('name');
-        if (fetchError) throw fetchError;
-        setBridges(data || []);
-      } catch (err) { console.error(err); }
-      finally { setBridgesLoading(false); }
+  // GPS support
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        setForm(f => ({ ...f, lat: pos.coords.latitude, lng: pos.coords.longitude }));
+        showToast('📍 GPS Location captured', 'success');
+      });
     }
-    fetchBridges();
-  }, []);
+  };
 
   async function handleFileSelect(file) {
     if (!file) return;
@@ -104,7 +109,8 @@ export default function ReportBridge() {
     
     if (!user) return setError('You must be logged in to submit a report.');
     if (!isVerified) return setError('Please verify your email before submitting reports.');
-    if (!form.bridge_id) return setError('Please select a bridge.');
+    if (!form.location_name) return setError('Please specify the location name.');
+    if (!form.city) return setError('Please specify the city.');
     if (!photo) return setError('Photo evidence is required.');
 
     // AI Image Validation + EXIF Freshness Check
@@ -133,7 +139,7 @@ export default function ReportBridge() {
       return;
     }
 
-    const localKey = `tb_report_${form.bridge_id}_${new Date().toDateString()}`;
+    const localKey = `tb_report_${form.location_name}_${new Date().toDateString()}`;
     if (localStorage.getItem(localKey)) return setError('You already reported this location today.');
 
     setSubmitting(true); setError(null);
@@ -207,7 +213,7 @@ export default function ReportBridge() {
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn-primary" style={{ flex: 1 }} onClick={() => router.push('/feed')}>See All Reports</button>
-          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSuccess(false); setForm({ bridge_id: '', issue_type: 'POTHOLE', severity: 'SERIOUS', description: '' }); setPhoto(null); setPhotoPreview(null); }}>Report Another</button>
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => { setSuccess(false); setForm({ location_name: '', city: '', state: 'Karnataka', issue_type: 'POTHOLE', severity: 'SERIOUS', description: '' }); setPhoto(null); setPhotoPreview(null); }}>Report Another</button>
         </div>
       </div>
     </div>
@@ -226,13 +232,17 @@ export default function ReportBridge() {
             <VoiceRecorder onTranscriptionComplete={handleTranscriptionComplete} />
           )}
 
-          <label>
-            <span style={{ fontWeight: 600 }}>Location *</span>
-            <select className="form-input" value={form.bridge_id} onChange={e => setForm({ ...form, bridge_id: e.target.value })} required>
-              <option value="">— Select a location —</option>
-              {bridges.map(b => <option key={b.id} value={b.id}>{b.name} — {b.district}, {b.state}</option>)}
-            </select>
-          </label>
+          <div className="grid-2" style={{ gap: '1rem' }}>
+            <label>
+              <span style={{ fontWeight: 600 }}>Location Name / Landmark *</span>
+              <input className="form-input" value={form.location_name} onChange={e => setForm({ ...form, location_name: e.target.value })} placeholder="e.g. MG Road, Near Station" required />
+            </label>
+            <label>
+              <span style={{ fontWeight: 600 }}>City *</span>
+              <input className="form-input" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} placeholder="e.g. Hubballi" required />
+            </label>
+          </div>
+          <button type="button" onClick={getUserLocation} style={{ fontSize: '0.85rem', padding: '0.4rem', background: 'rgba(255,255,255,0.05)' }}>📍 Use Current GPS Coordinates {form.lat ? '(Captured)' : ''}</button>
           <label>
             <span style={{ fontWeight: 600 }}>Issue Type *</span>
             <select className="form-input" value={form.issue_type} onChange={e => setForm({ ...form, issue_type: e.target.value })}>

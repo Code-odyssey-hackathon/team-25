@@ -13,7 +13,7 @@ export function exportToCSV(reports, bridges, filename = 'bridge-reports') {
     'Bridge Name',
     'District',
     'State',
-    'Damage Type',
+    'Issue Type',
     'Severity',
     'Description',
     'Status',
@@ -31,7 +31,7 @@ export function exportToCSV(reports, bridges, filename = 'bridge-reports') {
       bridge.name || r.bridge_name || 'Unknown',
       bridge.district || '',
       bridge.state || '',
-      r.damage_type,
+      r.issue_type,
       r.severity,
       r.description || '',
       r.status,
@@ -128,7 +128,7 @@ export function exportToPDF(reports, bridges, stats, filename = 'bridge-reports'
       <tr>
         <th>Location</th>
         <th>Location</th>
-        <th>Damage Type</th>
+        <th>Issue Type</th>
         <th>Severity</th>
         <th>Status</th>
         <th>Submitted</th>
@@ -143,7 +143,7 @@ export function exportToPDF(reports, bridges, stats, filename = 'bridge-reports'
         <tr>
           <td>${bridge.name || r.bridge_name || 'Unknown'}</td>
           <td>${bridge.district || ''}, ${bridge.state || ''}</td>
-          <td>${r.damage_type?.replace('_', ' ')}</td>
+          <td>${r.issue_type?.replace('_', ' ')}</td>
           <td class="severity-${r.severity?.toLowerCase()}">${r.severity}</td>
           <td class="status-${r.status?.toLowerCase().replace('_', '-')}">${r.status?.replace('_', ' ')}</td>
           <td>${new Date(r.created_at).toLocaleDateString('en-IN')}</td>

@@ -78,7 +78,7 @@ export async function getCurrentAuthority(providedUser = null) {
     .from('authorities')
     .select('*')
     .eq('auth_user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (error) return null;
   return authority;

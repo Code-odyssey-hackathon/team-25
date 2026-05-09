@@ -28,7 +28,7 @@ export default function AdminProfile() {
     async function fetchData() {
       try {
         const [reportsRes, bridgesRes] = await Promise.all([
-          supabase.from('reports').select('id, status, created_at, responded_at, bridge_id, damage_type, severity').order('created_at', { ascending: false }).limit(200),
+          supabase.from('reports').select('id, status, created_at, responded_at, bridge_id, issue_type, severity').order('created_at', { ascending: false }).limit(200),
           supabase.from('bridges').select('id, name, status, risk_score, district').order('risk_score', { ascending: false }),
         ]);
         setReports(reportsRes.data || []);

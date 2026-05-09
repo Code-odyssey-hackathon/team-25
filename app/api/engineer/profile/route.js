@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
+export async function GET(request) {
+  return NextResponse.json({ message: 'Engineer profile endpoint active. Use POST to fetch profile.' });
+}
+
 export async function POST(request) {
+  console.log('📬 Received engineer profile request');
   try {
     const { userId } = await request.json();
     

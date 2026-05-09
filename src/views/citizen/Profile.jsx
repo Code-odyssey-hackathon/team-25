@@ -240,7 +240,7 @@ export default function CitizenProfile() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="badge" style={{ background: 'rgba(255,255,255,0.08)' }}>{r.damage_type?.replace('_', ' ')}</span>
+                        <span className="badge" style={{ background: 'rgba(255,255,255,0.08)' }}>{r.issue_type?.replace('_', ' ')}</span>
                         <span className="badge" style={{ background: r.severity === 'DANGEROUS' ? 'rgba(239,68,68,0.2)' : 'rgba(249,115,22,0.2)', color: r.severity === 'DANGEROUS' ? '#f87171' : '#fb923c' }}>
                           {r.severity}
                         </span>

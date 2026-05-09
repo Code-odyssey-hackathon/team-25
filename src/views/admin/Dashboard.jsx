@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext'
-import { useBridges } from '../../hooks/useBridges'
-import { supabase } from '../../lib/supabase'
-import { signOut } from '../../lib/auth'
-import { createBridge } from '../../lib/bridges'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { useToast } from '../../context/ToastContext'
-import { exportToCSV, exportToPDF, getReportStats } from '../../lib/exportReports'
-import InspectionScheduler from '../../components/InspectionScheduler'
+import { useToast } from '../../context/ToastContext';
 import { getActiveEngineers, createEngineer } from '../../lib/engineers'
 import { createTask } from '../../lib/tasks'
+import { exportToCSV, exportToPDF, getReportStats } from '../../lib/exportReports';
+import { supabase } from '../../lib/supabase';
+import { signOut } from '../../lib/auth';
 import { FLAGS } from '../../lib/features'
 
 function AddEngineerForm({ onSuccess, onCancel }) {
@@ -67,87 +62,7 @@ function AddEngineerForm({ onSuccess, onCancel }) {
   )
 }
 
-const BridgeSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  lat: z.coerce.number().min(-90).max(90),
-  lng: z.coerce.number().min(-180).max(180),
-  district: z.string().min(2, 'District required'),
-  state: z.string().min(2).default('Karnataka'),
-  year_built: z.coerce.number().min(1800).max(new Date().getFullYear()).optional(),
-  seismic_zone: z.enum(['II', 'III', 'IV', 'V', 'VI']).optional(),
-  bridge_type: z.string().optional(),
-})
-
-function AddBridgeForm({ onSuccess, onCancel }) {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(BridgeSchema),
-    defaultValues: { state: 'Karnataka', seismic_zone: 'III' }
-  })
-
-  const onSubmit = async (data) => {
-    try {
-      await createBridge({ ...data, status: 'SAFE', risk_score: 0 })
-      reset()
-      onSuccess()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="glass-panel" style={{ padding: '2rem', marginBottom: '3rem', textAlign: 'left' }}>
-      <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.2rem' }}>➕ Add New Location</h3>
-      <div className="grid-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Location Name</label>
-          <input className="form-input" style={{ margin: 0 }} {...register('name')} />
-          {errors.name && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.name.message}</span>}
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Structure Type</label>
-          <input className="form-input" style={{ margin: 0 }} {...register('bridge_type')} placeholder="e.g. Concrete, Steel" />
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Latitude</label>
-          <input className="form-input" style={{ margin: 0 }} type="number" step="any" {...register('lat')} />
-          {errors.lat && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.lat.message}</span>}
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Longitude</label>
-          <input className="form-input" style={{ margin: 0 }} type="number" step="any" {...register('lng')} />
-          {errors.lng && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.lng.message}</span>}
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>District</label>
-          <input className="form-input" style={{ margin: 0 }} {...register('district')} />
-          {errors.district && <span className="text-red" style={{ fontSize: '0.8rem' }}>{errors.district.message}</span>}
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>State</label>
-          <input className="form-input" style={{ margin: 0 }} {...register('state')} />
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Year Built</label>
-          <input className="form-input" style={{ margin: 0 }} type="number" {...register('year_built')} />
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#94a3b8' }}>Seismic Zone</label>
-          <select className="form-input" style={{ margin: 0 }} {...register('seismic_zone')}>
-            <option value="II">Zone II</option>
-            <option value="III">Zone III</option>
-            <option value="IV">Zone IV</option>
-            <option value="V">Zone V</option>
-            <option value="VI">Zone VI</option>
-          </select>
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-        <button type="submit" className="btn-primary" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Location'}</button>
-        <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  )
-}
+// Bridges functionality removed as requested
 
 function ReportRow({ report, onUpdate, authority }) {
   const [status, setStatus] = useState(report.status)
@@ -308,25 +223,21 @@ function ReportRow({ report, onUpdate, authority }) {
 
 export default function AdminDashboard() {
   const { authority, loading: authLoading, isAdmin } = useAuth()
-  const { bridges, loading: bridgesLoading, refetch: refetchBridges } = useBridges()
   const router = useRouter()
   const { showToast } = useToast()
   const [pendingReports, setPendingReports] = useState([])
   const [reportsLoading, setReportsLoading] = useState(true)
-  const [addBridgeOpen, setAddBridgeOpen] = useState(false)
   const [addEngineerOpen, setAddEngineerOpen] = useState(false)
 
   // Export handlers
   const handleExportCSV = () => {
-    const allReports = pendingReports; // In real app, fetch all reports
-    exportToCSV(allReports, bridges, 'JanaVaani-reports');
+    exportToCSV(pendingReports, [], 'JanaVaani-reports');
     showToast('CSV export downloaded', 'success');
   };
 
   const handleExportPDF = () => {
-    const allReports = pendingReports;
-    const stats = getReportStats(allReports);
-    exportToPDF(allReports, bridges, stats, 'JanaVaani-reports');
+    const stats = getReportStats(pendingReports);
+    exportToPDF(pendingReports, [], stats, 'JanaVaani-reports');
     showToast('PDF export opened in new tab', 'success');
   };
 
@@ -380,7 +291,7 @@ export default function AdminDashboard() {
     router.push('/admin/login')
   }
 
-  if (authLoading || bridgesLoading || reportsLoading) {
+  if (authLoading || reportsLoading) {
     return <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}><div className="loading-spinner"></div></div>
   }
   if (!isAdmin) return null
@@ -388,7 +299,7 @@ export default function AdminDashboard() {
   return (
     <div className="page-container">
       <div className="flex-between" style={{ marginBottom: '2rem', borderBottom: '1px solid var(--color-glass-border)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>🌉 Authority Dashboard</h1>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>📋 Infrastructure Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <span className="text-gray">{String(authority?.name || 'Admin')} · {String(authority?.role || '')}</span>
           {FLAGS.ENABLE_MASTER_TICKETS && (
@@ -401,33 +312,26 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid-4" style={{ marginBottom: '3rem' }}>
-        <div className="card-dark">
-          <div className="stat-number">{bridges.length}</div>
-          <div className="stat-title text-gray">Total Locations</div>
-        </div>
+      <div className="grid-3" style={{ marginBottom: '3rem' }}>
         <div className="card-red">
-          <div className="stat-number text-red">{bridges.filter(b => b.status === 'CRITICAL').length}</div>
-          <div className="stat-title text-red">Critical</div>
+          <div className="stat-number text-red">{pendingReports.filter(r => r.severity === 'DANGEROUS').length}</div>
+          <div className="stat-title text-red">Critical Reports</div>
         </div>
         <div className="card-orange">
-          <div className="stat-number text-orange">{bridges.filter(b => b.status === 'WARNING').length}</div>
-          <div className="stat-title text-orange">Warning</div>
+          <div className="stat-number text-orange">{pendingReports.filter(r => r.severity === 'WARNING').length}</div>
+          <div className="stat-title text-orange">Warning Reports</div>
         </div>
         <div className="card-dark">
           <div className="stat-number text-yellow">{pendingReports.length}</div>
-          <div className="stat-title text-yellow">Pending Reports</div>
+          <div className="stat-title text-yellow">Total Pending</div>
         </div>
       </div>
 
-      {addBridgeOpen ? (
-        <AddBridgeForm onSuccess={() => { setAddBridgeOpen(false); refetchBridges() }} onCancel={() => setAddBridgeOpen(false)} />
-      ) : addEngineerOpen ? (
+      {addEngineerOpen ? (
         <AddEngineerForm onSuccess={() => setAddEngineerOpen(false)} onCancel={() => setAddEngineerOpen(false)} />
       ) : (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '2rem' }}>
           <button className="btn-secondary" onClick={() => setAddEngineerOpen(true)}>👷 Add New Engineer</button>
-          <button className="btn-secondary" onClick={() => setAddBridgeOpen(true)}>➕ Add New Location</button>
         </div>
       )}
 
@@ -438,27 +342,7 @@ export default function AdminDashboard() {
         )) : <p className="text-gray">No reports require action at this time.</p>}
       </div>
 
-      <div style={{ marginBottom: '3rem' }}>
-        <InspectionScheduler bridges={bridges} />
-      </div>
-
-      <div style={{ textAlign: 'left' }}>
-        <div className="section-title">All Locations — Risk Ranked</div>
-        <div className="grid-3">
-          {bridges.map(b => (
-            <Link key={b.id} href={`/bridge/${b.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="card-dark" style={{ borderLeft: `4px solid var(--color-${b.status.toLowerCase()})`, transition: '0.2s', cursor: 'pointer' }}>
-                <div className="flex-between">
-                  <span className={`badge status-${b.status.toLowerCase()}`}>{b.status}</span>
-                  <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>{b.risk_score}</span>
-                </div>
-                <h3 style={{ marginTop: '0.5rem', marginBottom: '0.25rem', fontSize: '1.1rem' }}>{b.name}</h3>
-                <p className="text-gray" style={{ fontSize: '0.9rem' }}>{b.district}, {b.state}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+      {/* Bridge ranking list removed as requested */}
     </div>
   )
 }

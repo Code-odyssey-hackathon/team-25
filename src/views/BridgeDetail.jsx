@@ -28,6 +28,7 @@ function RiskBar({ value, max, color }) {
 
 function ShareButton({ bridge }) {
   const [copied, setCopied] = useState(false)
+  const router = useRouter()
   const url = `${window.location.origin}/bridge/${bridge.id}`
   const waText = encodeURIComponent(
     `⚠️ ${bridge.name} (${bridge.district}) has a risk score of ${bridge.risk_score}/100 — Status: ${bridge.status}.\n\nCitizens have filed ${bridge.total_reports} reports. Check JanaVaani:\n${url}`
@@ -212,7 +213,7 @@ export default function BridgeDetail() {
                   initialCount={r.verification_count || 0}
                   isOwnReport={r.citizen_id === null}
                 />
-                {FLAGS.ENABLE_BLOCKCHAIN_AUDIT && (
+                {FLAGS.ENABLE_BLOCKCHAIN && (
                   <button 
                     className="btn-secondary" 
                     style={{ width: '100%', marginTop: '0.5rem', background: 'rgba(245, 158, 11, 0.1)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.3)' }}
